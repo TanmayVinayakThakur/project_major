@@ -22,6 +22,11 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Password is required'],
     },
+    location: {
+      lat: { type: Number },
+      lng: { type: Number },
+      address: { type: String, trim: true },
+    },
   },
   {
     timestamps: { createdAt: 'createdAt', updatedAt: false },

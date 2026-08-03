@@ -14,12 +14,22 @@ app.use(express.json());
 // ──────────────────────────────────────────────
 // Routes (Phase 2)
 // ──────────────────────────────────────────────
+const authRouter = require('./routes/auth');
+const stationsRouter = require('./routes/stations');
+const routeRouter = require('./routes/route');
+const compareRouter = require('./routes/compare');
+
+app.use('/api/auth', authRouter);
+app.use('/api/stations', stationsRouter);
+app.use('/api/route', routeRouter);
+app.use('/api/compare', compareRouter);
+
 app.get('/', (_req, res) => {
   res.json({
     message: 'NammaRoute API is running 🚇',
     version: '1.0.0',
     endpoints: {
-      auth: '/api/auth   (Phase 2)',
+      auth: '/api/auth',
       route: '/api/route  (Phase 2)',
       trips: '/api/trips  (Phase 2)',
     },
@@ -29,20 +39,13 @@ app.get('/', (_req, res) => {
 // ──────────────────────────────────────────────
 // Database Connection & Server Start
 // ──────────────────────────────────────────────
+const { connectDB } = require('./utils/db');
 const PORT = process.env.PORT || 5000;
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/nammaroute';
 
-mongoose
-  .connect(MONGO_URI)
-  .then(() => {
-    console.log('✅ Connected to MongoDB');
-    app.listen(PORT, () => {
-      console.log(`🚇 NammaRoute server running on http://localhost:${PORT}`);
-    });
-  })
-  .catch((err) => {
-    console.error('❌ MongoDB connection error:', err.message);
-    process.exit(1);
+connectDB().then(() => {
+  app.listen(PORT, () => {
+    console.log(`🚇 NammaRoute server running on http://localhost:${PORT}`);
   });
+});
 
 module.exports = app;
