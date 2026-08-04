@@ -322,24 +322,24 @@ function App() {
   return (
     <div className="flex flex-col min-h-screen">
       {/* Navigation Header */}
-      <header className="sticky top-0 z-50 border-b border-slate-900 bg-slate-950/80 backdrop-blur-md px-6 py-4 shadow-md">
+      <header className="sticky top-0 z-50 border-b border-emerald-100/80 bg-white/75 backdrop-blur-md px-6 py-4 shadow-sm shadow-emerald-500/5">
         <div className="mx-auto max-w-7xl flex items-center justify-between">
           <div className="flex items-center gap-3">
             <span className="text-3xl animate-pulse">🚇</span>
             <div>
-              <h1 className="text-xl font-black bg-gradient-to-r from-purple-400 via-indigo-400 to-emerald-400 bg-clip-text text-transparent">
+              <h1 className="text-xl font-black text-emerald-800">
                 NammaRoute
               </h1>
-              <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold">
+              <p className="text-[10px] uppercase tracking-widest text-emerald-600 font-bold">
                 Bangalore Metro Route Guide
               </p>
             </div>
           </div>
           
           {user && (
-            <div className="flex items-center gap-2 rounded-full border border-purple-500/20 bg-purple-500/5 px-3.5 py-1.5 text-xs text-purple-300">
-              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="font-semibold">{user.name}</span>
+            <div className="flex items-center gap-2 rounded-full border border-emerald-100 bg-emerald-50 px-3.5 py-1.5 text-xs text-emerald-800 font-semibold shadow-sm">
+              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>{user.name}</span>
             </div>
           )}
         </div>
@@ -434,7 +434,7 @@ function App() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-slate-900 bg-slate-950/40 py-6 text-center text-xs text-slate-600">
+      <footer className="border-t border-emerald-100 bg-white/60 py-6 text-center text-xs text-slate-500">
         <p>© 2026 NammaRoute. Built with React + Express + MongoDB.</p>
       </footer>
     </div>

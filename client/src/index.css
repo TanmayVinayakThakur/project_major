@@ -4,11 +4,24 @@
 
 @layer base {
   body {
-    @apply bg-slate-950 text-slate-100 min-h-screen font-sans;
-    background-image: radial-gradient(circle at top right, rgba(99, 102, 241, 0.1) 0%, transparent 60%),
-                      radial-gradient(circle at bottom left, rgba(168, 85, 247, 0.05) 0%, transparent 50%);
+    @apply bg-emerald-50/30 text-slate-800 min-h-screen font-sans;
+    background-image: radial-gradient(circle at top right, rgba(16, 185, 129, 0.07) 0%, transparent 50%),
+                      radial-gradient(circle at bottom left, rgba(5, 150, 105, 0.04) 0%, transparent 50%);
     background-attachment: fixed;
   }
+}
+
+@keyframes breathe {
+  0%, 100% {
+    transform: scale(0.96);
+  }
+  50% {
+    transform: scale(1.04);
+  }
+}
+.animate-breathe {
+  animation: breathe 3.5s ease-in-out infinite;
+  display: inline-block;
 }
 
 /* Custom scrollbar for modern browsers */
@@ -17,12 +30,12 @@
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: rgba(15, 23, 42, 0.3);
+  background: rgba(209, 250, 229, 0.3);
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(168, 85, 247, 0.3);
+  background: rgba(16, 185, 129, 0.3);
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(168, 85, 247, 0.5);
+  background: rgba(16, 185, 129, 0.5);
 }

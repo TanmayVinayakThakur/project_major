@@ -432,16 +432,16 @@ const RoutePlanner = ({
     : null;
 
   return (
-    <div className="flex flex-col gap-5 rounded-2xl border border-slate-800 bg-slate-900/40 p-5 backdrop-blur-xl shadow-2xl">
-      <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+    <div className="flex flex-col gap-5 rounded-2xl border border-emerald-100 bg-white/85 p-5 shadow-lg shadow-emerald-500/5">
+      <div className="flex items-center justify-between border-b border-emerald-50 pb-3">
         <div className="flex items-center gap-2">
-          <Navigation className="h-5 w-5 text-purple-400 animate-pulse" />
-          <h2 className="text-lg font-black text-slate-100">Find Metro Route</h2>
+          <Navigation className="h-5 w-5 text-emerald-600 animate-pulse" />
+          <h2 className="text-lg font-black text-emerald-850">Find Metro Route</h2>
         </div>
         {(sourceStation || destStation) && (
           <button
             onClick={onClearRoute}
-            className="text-xs font-bold text-rose-400 hover:text-rose-300 hover:underline"
+            className="text-xs font-bold text-rose-500 hover:text-rose-400 hover:underline"
           >
             Clear Fields
           </button>
@@ -465,13 +465,13 @@ const RoutePlanner = ({
                 setSourceSearch(e.target.value);
                 setSourceDropdown(true);
               }}
-              className="w-full rounded-xl border border-slate-800 bg-slate-950/60 pl-11 pr-4 py-2.5 text-sm text-slate-200 placeholder-slate-600 focus:border-emerald-500 focus:outline-none transition-colors"
+              className="w-full rounded-xl border border-slate-200 bg-white/80 pl-11 pr-4 py-2.5 text-sm text-slate-700 placeholder-slate-400 focus:border-emerald-500 focus:outline-none transition-all shadow-sm focus:ring-1 focus:ring-emerald-500"
               placeholder="Type station name or landmark (e.g. Lalbagh)"
             />
           </div>
 
           {sourceDropdown && (sourceSuggestions.length > 0 || sourceSearching) && (
-            <div className="absolute z-50 mt-1 w-full max-h-60 overflow-y-auto rounded-xl border border-slate-800 bg-slate-950 p-2 shadow-2xl">
+            <div className="absolute z-50 mt-1 w-full max-h-60 overflow-y-auto rounded-xl border border-emerald-100 bg-white p-2 shadow-xl">
               {sourceSearching && (
                 <div className="p-3 text-center text-xs text-slate-500 font-medium animate-pulse">
                   Searching addresses...
@@ -482,11 +482,11 @@ const RoutePlanner = ({
                   key={idx}
                   type="button"
                   onClick={() => handleSelectSourceOption(opt)}
-                  className="w-full flex items-center justify-between rounded-lg p-2.5 hover:bg-slate-900 transition-colors text-left text-xs border border-transparent hover:border-slate-850"
+                  className="w-full flex items-center justify-between rounded-lg p-2.5 hover:bg-emerald-50/50 transition-colors text-left text-xs border border-transparent hover:border-emerald-100"
                 >
                   <div className="flex-1 pr-2">
-                    <p className="font-bold text-slate-200">{opt.description}</p>
-                    <p className="text-[9px] text-slate-500 uppercase mt-0.5 font-semibold tracking-wider">
+                    <p className="font-bold text-slate-700">{opt.description}</p>
+                    <p className="text-[9px] text-slate-400 uppercase mt-0.5 font-semibold tracking-wider">
                       {opt.type === 'google' ? 'Google Maps Address' : opt.type === 'station' ? 'Metro Station' : 'Landmark'}
                     </p>
                   </div>
@@ -501,7 +501,7 @@ const RoutePlanner = ({
           <button
             type="button"
             onClick={handleSwap}
-            className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-800 bg-slate-900 text-slate-400 hover:text-white hover:border-purple-500/50 hover:bg-purple-950/20 transition-all shadow-md"
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-emerald-100 bg-white text-emerald-600 hover:text-emerald-700 hover:border-emerald-300 hover:bg-emerald-50/50 transition-all shadow-sm"
             title="Swap"
           >
             <ArrowUpDown className="h-4.5 w-4.5" />
@@ -523,13 +523,13 @@ const RoutePlanner = ({
                 setDestSearch(e.target.value);
                 setDestDropdown(true);
               }}
-              className="w-full rounded-xl border border-slate-800 bg-slate-950/60 pl-11 pr-4 py-2.5 text-sm text-slate-200 placeholder-slate-600 focus:border-rose-500 focus:outline-none transition-colors"
+              className="w-full rounded-xl border border-slate-200 bg-white/80 pl-11 pr-4 py-2.5 text-sm text-slate-700 placeholder-slate-400 focus:border-emerald-500 focus:outline-none transition-all shadow-sm focus:ring-1 focus:ring-emerald-500"
               placeholder="Type station name or landmark (e.g. UB City)"
             />
           </div>
 
           {destDropdown && (destSuggestions.length > 0 || destSearching) && (
-            <div className="absolute z-50 mt-1 w-full max-h-60 overflow-y-auto rounded-xl border border-slate-800 bg-slate-950 p-2 shadow-2xl">
+            <div className="absolute z-50 mt-1 w-full max-h-60 overflow-y-auto rounded-xl border border-emerald-100 bg-white p-2 shadow-xl">
               {destSearching && (
                 <div className="p-3 text-center text-xs text-slate-500 font-medium animate-pulse">
                   Searching addresses...
@@ -540,11 +540,11 @@ const RoutePlanner = ({
                   key={idx}
                   type="button"
                   onClick={() => handleSelectDestOption(opt)}
-                  className="w-full flex items-center justify-between rounded-lg p-2.5 hover:bg-slate-900 transition-colors text-left text-xs border border-transparent hover:border-slate-850"
+                  className="w-full flex items-center justify-between rounded-lg p-2.5 hover:bg-emerald-50/50 transition-colors text-left text-xs border border-transparent hover:border-emerald-100"
                 >
                   <div className="flex-1 pr-2">
-                    <p className="font-bold text-slate-200">{opt.description}</p>
-                    <p className="text-[9px] text-slate-500 uppercase mt-0.5 font-semibold tracking-wider">
+                    <p className="font-bold text-slate-700">{opt.description}</p>
+                    <p className="text-[9px] text-slate-400 uppercase mt-0.5 font-semibold tracking-wider">
                       {opt.type === 'google' ? 'Google Maps Address' : opt.type === 'station' ? 'Metro Station' : 'Landmark'}
                     </p>
                   </div>
@@ -557,7 +557,7 @@ const RoutePlanner = ({
 
       {/* Suggested Quick Landmarks shortcut when empty */}
       {!sourceStation && !destStation && (
-        <div className="rounded-xl border border-slate-800/80 bg-slate-950/20 p-3">
+        <div className="rounded-xl border border-emerald-100 bg-white/50 p-3 shadow-sm">
           <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2">Popular Bangalore Destinations</p>
           <div className="flex flex-wrap gap-1.5">
             {LANDMARKS.slice(0, 5).map((l, idx) => (
@@ -571,7 +571,7 @@ const RoutePlanner = ({
                     setDestSearch(station.name);
                   }
                 }}
-                className="rounded-lg border border-slate-800/85 bg-slate-950/40 px-2 py-1 text-[10px] font-semibold text-slate-400 hover:border-purple-500/30 hover:text-purple-400 hover:bg-purple-950/10 transition-all"
+                className="rounded-lg border border-emerald-100 bg-white px-2 py-1 text-[10px] font-semibold text-emerald-700 hover:border-emerald-300 hover:text-emerald-800 hover:bg-emerald-50/30 transition-all shadow-sm"
               >
                 {l.name.split(' ')[0]}
               </button>
@@ -582,9 +582,9 @@ const RoutePlanner = ({
 
       {/* Preference Toggle & Smart Comparison Cards */}
       {comparisonLoading && (
-        <div className="flex flex-col items-center justify-center p-6 text-slate-400 rounded-xl bg-slate-950/20 border border-slate-800/50">
-          <RefreshCw className="h-6 w-6 animate-spin text-purple-500 mb-2" />
-          <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Comparing routes & Uber predictions...</p>
+        <div className="flex flex-col items-center justify-center p-6 text-slate-500 rounded-xl bg-white/50 border border-emerald-100 shadow-sm animate-pulse">
+          <RefreshCw className="h-6 w-6 animate-spin text-emerald-600 mb-2" />
+          <p className="text-xs font-bold uppercase tracking-wider text-emerald-700">Comparing routes & Uber predictions...</p>
         </div>
       )}
 
@@ -594,18 +594,18 @@ const RoutePlanner = ({
           {/* Preference Switcher */}
           <div className="space-y-1">
             <span className="block text-[9px] font-bold uppercase tracking-wider text-slate-500">Route Preference Priority</span>
-            <div className="flex gap-2 rounded-xl bg-slate-950/60 p-1 border border-slate-850">
+            <div className="flex gap-2 rounded-xl bg-slate-100 p-1 border border-slate-200 shadow-inner">
               <button
                 type="button"
                 onClick={() => setPreference('cheaper')}
-                className={`flex-1 rounded-lg py-1.5 text-xs font-black transition-all ${preference === 'cheaper' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'}`}
+                className={`flex-1 rounded-lg py-1.5 text-xs font-black transition-all ${preference === 'cheaper' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
               >
                 Cheaper Preference
               </button>
               <button
                 type="button"
                 onClick={() => setPreference('faster')}
-                className={`flex-1 rounded-lg py-1.5 text-xs font-black transition-all ${preference === 'faster' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'}`}
+                className={`flex-1 rounded-lg py-1.5 text-xs font-black transition-all ${preference === 'faster' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
               >
                 Faster Preference
               </button>
@@ -614,7 +614,7 @@ const RoutePlanner = ({
 
           {/* Comparative Cards Dashboard */}
           <div className="flex flex-col gap-2">
-            <span className="block text-[9px] font-bold uppercase tracking-wider text-slate-500">Select Mode to View Directions</span>
+            <span className="block text-[9px] font-bold uppercase tracking-wider text-slate-500 font-bold">Select Mode to View Directions</span>
             
             {/* 1. Metro Option Card */}
             <button
@@ -622,20 +622,20 @@ const RoutePlanner = ({
               onClick={() => setActiveMode('metro')}
               className={`w-full flex items-center justify-between rounded-xl border p-3.5 text-left transition-all ${
                 activeMode === 'metro' 
-                  ? 'border-emerald-500/60 bg-emerald-500/5 shadow-md shadow-emerald-500/5' 
-                  : 'border-slate-850 bg-slate-950/20 hover:border-slate-700'
+                  ? 'border-emerald-500 bg-emerald-50/70 shadow-sm shadow-emerald-500/5' 
+                  : 'border-slate-205 bg-white hover:border-emerald-300 shadow-sm'
               }`}
             >
               <div className="flex items-center gap-3">
                 <span className="text-xl">🚇</span>
                 <div>
-                  <h4 className="text-xs font-black text-slate-200">Namma Metro</h4>
+                  <h4 className="text-xs font-black text-slate-800">Namma Metro</h4>
                   <p className="text-[10px] text-slate-500 font-medium">Flat transit fare</p>
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-sm font-black text-emerald-400 font-mono">₹{comparisonData.pureMetro.totalCostRupees}</p>
-                <p className="text-[10px] text-slate-400 font-mono mt-0.5">{comparisonData.pureMetro.totalTimeMinutes} mins</p>
+                <p className="text-sm font-black text-emerald-600 font-mono">₹{comparisonData.pureMetro.totalCostRupees}</p>
+                <p className="text-[10px] text-slate-500 font-mono mt-0.5">{comparisonData.pureMetro.totalTimeMinutes} mins</p>
               </div>
             </button>
 
@@ -646,20 +646,20 @@ const RoutePlanner = ({
                 onClick={() => setActiveMode('hybrid')}
                 className={`w-full flex items-center justify-between rounded-xl border p-3.5 text-left transition-all ${
                   activeMode === 'hybrid' 
-                    ? 'border-purple-500/60 bg-purple-500/5 shadow-md shadow-purple-500/5' 
-                    : 'border-slate-850 bg-slate-950/20 hover:border-slate-700'
+                    ? 'border-emerald-500 bg-emerald-50/70 shadow-sm shadow-emerald-500/5' 
+                    : 'border-slate-205 bg-white hover:border-emerald-300 shadow-sm'
                 }`}
               >
                 <div className="flex items-center gap-3">
                   <span className="text-xl">⚡</span>
                   <div>
-                    <h4 className="text-xs font-black text-slate-200">Metro + Cab Hybrid</h4>
-                    <p className="text-[9px] font-bold text-purple-400 uppercase mt-0.5">Via {comparisonData.hybrid.exitStation.name}</p>
+                    <h4 className="text-xs font-black text-slate-800">Metro + Cab Hybrid</h4>
+                    <p className="text-[9px] font-bold text-emerald-700 uppercase mt-0.5">Via {comparisonData.hybrid.exitStation.name}</p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-black text-purple-400 font-mono">₹{comparisonData.hybrid.totalCostRupees.toFixed(0)}</p>
-                  <p className="text-[10px] text-slate-400 font-mono mt-0.5">{comparisonData.hybrid.totalTimeMinutes} mins</p>
+                  <p className="text-sm font-black text-emerald-700 font-mono">₹{comparisonData.hybrid.totalCostRupees.toFixed(0)}</p>
+                  <p className="text-[10px] text-slate-500 font-mono mt-0.5">{comparisonData.hybrid.totalTimeMinutes} mins</p>
                 </div>
               </button>
             )}
@@ -670,77 +670,69 @@ const RoutePlanner = ({
               onClick={() => setActiveMode('uber')}
               className={`w-full flex items-center justify-between rounded-xl border p-3.5 text-left transition-all ${
                 activeMode === 'uber' 
-                  ? 'border-blue-500/60 bg-blue-500/5 shadow-md shadow-blue-500/5' 
-                  : 'border-slate-850 bg-slate-950/20 hover:border-slate-700'
+                  ? 'border-emerald-500 bg-emerald-50/70 shadow-sm shadow-emerald-500/5' 
+                  : 'border-slate-205 bg-white hover:border-emerald-300 shadow-sm'
               }`}
             >
               <div className="flex items-center gap-3">
                 <span className="text-xl">🚗</span>
                 <div>
-                  <h4 className="text-xs font-black text-slate-200">Direct Uber Cab</h4>
+                  <h4 className="text-xs font-black text-slate-800">Direct Uber Cab</h4>
                   <p className="text-[10px] text-slate-500 font-medium">{comparisonData.pureUber.distanceKm} km drive</p>
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-sm font-black text-blue-400 font-mono">₹{comparisonData.pureUber.costRupees.toFixed(0)}</p>
-                <p className="text-[10px] text-slate-400 font-mono mt-0.5">{comparisonData.pureUber.timeMinutes} mins</p>
+                <p className="text-sm font-black text-emerald-600 font-mono">₹{comparisonData.pureUber.costRupees.toFixed(0)}</p>
+                <p className="text-[10px] text-slate-500 font-mono mt-0.5">{comparisonData.pureUber.timeMinutes} mins</p>
               </div>
             </button>
           </div>
 
           {/* Active Recommendation Banner */}
           {activeRec && (
-            <div className={`rounded-xl border p-4 bg-gradient-to-r ${
-              activeRec.type === 'hybrid' 
-                ? 'from-purple-950/20 to-indigo-950/20 border-purple-500/20' 
-                : activeRec.type === 'uber'
-                ? 'from-blue-950/20 to-slate-950/20 border-blue-500/20'
-                : 'from-emerald-950/20 to-slate-950/20 border-emerald-500/20'
-            }`}>
+            <div className="rounded-xl border border-emerald-100 p-4 bg-emerald-50/30 shadow-sm">
               <div className="flex items-center gap-2 mb-1.5">
-                <Zap className={`h-4.5 w-4.5 ${
-                  activeRec.type === 'hybrid' ? 'text-purple-400' : activeRec.type === 'uber' ? 'text-blue-400' : 'text-emerald-400'
-                } animate-bounce`} />
-                <span className="text-xs font-black text-slate-200 uppercase tracking-wider">
+                <Zap className="h-4.5 w-4.5 text-emerald-600 animate-bounce" />
+                <span className="text-xs font-black text-emerald-800 uppercase tracking-wider">
                   Recommended: {activeRec.title}
                 </span>
               </div>
-              <p className="text-xs text-slate-300 leading-relaxed font-semibold">
+              <p className="text-xs text-slate-600 leading-relaxed font-semibold">
                 {activeRec.reason}
               </p>
             </div>
           )}
 
           {/* Journey directions */}
-          <div className="rounded-xl border border-slate-800 bg-slate-950/40 p-4">
-            <h3 className="text-xs font-black uppercase tracking-wider text-slate-400 mb-3 border-b border-slate-900 pb-2 flex items-center justify-between">
+          <div className="rounded-xl border border-emerald-100 bg-white/60 p-4 shadow-sm">
+            <h3 className="text-xs font-black uppercase tracking-wider text-slate-500 mb-3 border-b border-emerald-50 pb-2 flex items-center justify-between font-bold">
               <span>Directions Detail</span>
-              <span className="text-[9px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded font-mono uppercase">
+              <span className="text-[9px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded font-mono uppercase font-bold">
                 {activeMode}
               </span>
             </h3>
             
-            <div className="relative pl-5 border-l border-slate-800 space-y-4">
+            <div className="relative pl-5 border-l border-slate-200 space-y-4">
               {getDirections().map((step, idx) => (
                 <div key={idx} className="relative">
                   {/* Step pin indicators */}
                   <span
-                    className={`absolute -left-[24.5px] top-0.5 flex h-2 w-2 rounded-full border border-slate-950 ${
+                    className={`absolute -left-[24.5px] top-0.5 flex h-2 w-2 rounded-full border border-white ${
                       step.type === 'board' || step.type === 'uber-board'
-                        ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]'
+                        ? 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.4)]'
                         : step.type === 'exit' || step.type === 'uber-arrive'
-                        ? 'bg-rose-400 shadow-[0_0_8px_rgba(251,113,133,0.6)]'
+                        ? 'bg-rose-500 shadow-[0_0_6px_rgba(239,68,68,0.4)]'
                         : step.type === 'transfer'
-                        ? 'bg-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.6)]'
-                        : 'bg-blue-400 shadow-[0_0_8px_rgba(96,165,250,0.6)]'
+                        ? 'bg-yellow-500 shadow-[0_0_6px_rgba(234,179,8,0.4)]'
+                        : 'bg-emerald-600 shadow-[0_0_6px_rgba(16,185,129,0.4)]'
                     }`}
                   />
                   
-                  <p className="text-xs text-slate-200 leading-relaxed font-semibold">{step.text}</p>
+                  <p className="text-xs text-slate-700 leading-relaxed font-semibold">{step.text}</p>
                   
                   {step.type === 'transfer' && (
                     <div className="mt-1 flex items-center gap-1">
-                      <span className="text-[9px] font-bold uppercase bg-slate-800 text-slate-400 px-1 rounded">Switch Line</span>
+                      <span className="text-[9px] font-bold uppercase bg-slate-100 text-slate-500 px-1 rounded font-bold">Switch Line</span>
                     </div>
                   )}
                 </div>

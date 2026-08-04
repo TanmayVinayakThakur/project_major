@@ -57,39 +57,41 @@ const Auth = ({ onLoginSuccess }) => {
 
   return (
     <div className="flex min-h-[80vh] items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
-      <div className="w-full max-w-md space-y-8 rounded-3xl border border-slate-800 bg-slate-900/40 p-8 backdrop-blur-2xl shadow-2xl">
+      <div className="w-full max-w-md space-y-8 rounded-3xl border border-emerald-100/80 bg-white/75 p-8 backdrop-blur-xl shadow-2xl shadow-emerald-500/5">
         <div className="text-center">
-          <span className="inline-block rounded-2xl bg-purple-500/10 p-4 text-purple-400">
+          <span className="inline-block rounded-2xl bg-emerald-500/10 p-4 text-emerald-600 shadow-sm">
             <span className="text-3xl">🚇</span>
           </span>
-          <h2 className="mt-4 text-3xl font-black tracking-tight text-white">
-            NammaRoute
-          </h2>
-          <p className="mt-1 text-sm text-slate-400">
+          <div className="mt-4">
+            <h2 className="text-3xl font-black tracking-tight text-emerald-800 animate-breathe">
+              Welcome to NammaRoute
+            </h2>
+          </div>
+          <p className="mt-2 text-sm text-slate-500 font-semibold">
             {isLogin ? 'Sign in to access Bangalore Metro route map' : 'Create an account to start tracking routes'}
           </p>
         </div>
 
         <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
           {error && (
-            <div className="flex items-center gap-2 rounded-xl bg-rose-950/30 border border-rose-900/50 p-4 text-sm text-rose-400">
-              <AlertCircle className="h-5 w-5 flex-shrink-0" />
-              <p className="font-semibold">{error}</p>
+            <div className="flex items-center gap-2 rounded-xl bg-rose-50 border border-rose-200 p-4 text-sm text-rose-600 font-medium">
+              <AlertCircle className="h-5 w-5 flex-shrink-0 text-rose-500" />
+              <p>{error}</p>
             </div>
           )}
 
           <div className="space-y-4">
             {!isLogin && (
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Full Name</label>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Full Name</label>
                 <div className="relative">
-                  <User className="absolute left-3.5 top-3 h-4.5 w-4.5 text-slate-500" />
+                  <User className="absolute left-3.5 top-3 h-4.5 w-4.5 text-slate-400" />
                   <input
                     type="text"
                     required
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="w-full rounded-xl border border-slate-800 bg-slate-950/60 pl-11 pr-4 py-2.5 text-sm text-slate-200 placeholder-slate-600 focus:border-purple-500 focus:outline-none transition-colors"
+                    className="w-full rounded-xl border border-slate-200 bg-white/80 pl-11 pr-4 py-2.5 text-sm text-slate-800 placeholder-slate-400 focus:border-emerald-500 focus:outline-none transition-all shadow-sm focus:ring-1 focus:ring-emerald-500"
                     placeholder="Enter your name"
                   />
                 </div>
@@ -97,39 +99,39 @@ const Auth = ({ onLoginSuccess }) => {
             )}
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Email Address</label>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Email Address</label>
               <div className="relative">
-                <Mail className="absolute left-3.5 top-3 h-4.5 w-4.5 text-slate-500" />
+                <Mail className="absolute left-3.5 top-3 h-4.5 w-4.5 text-slate-400" />
                 <input
                   type="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full rounded-xl border border-slate-800 bg-slate-950/60 pl-11 pr-4 py-2.5 text-sm text-slate-200 placeholder-slate-600 focus:border-purple-500 focus:outline-none transition-colors"
+                  className="w-full rounded-xl border border-slate-200 bg-white/80 pl-11 pr-4 py-2.5 text-sm text-slate-800 placeholder-slate-400 focus:border-emerald-500 focus:outline-none transition-all shadow-sm focus:ring-1 focus:ring-emerald-500"
                   placeholder="name@example.com"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Password</label>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Password</label>
               <div className="relative">
-                <Lock className="absolute left-3.5 top-3 h-4.5 w-4.5 text-slate-500" />
+                <Lock className="absolute left-3.5 top-3 h-4.5 w-4.5 text-slate-400" />
                 <input
                   type="password"
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full rounded-xl border border-slate-800 bg-slate-950/60 pl-11 pr-4 py-2.5 text-sm text-slate-200 placeholder-slate-600 focus:border-purple-500 focus:outline-none transition-colors"
+                  className="w-full rounded-xl border border-slate-200 bg-white/80 pl-11 pr-4 py-2.5 text-sm text-slate-800 placeholder-slate-400 focus:border-emerald-500 focus:outline-none transition-all shadow-sm focus:ring-1 focus:ring-emerald-500"
                   placeholder="••••••••"
                 />
               </div>
             </div>
 
             {!isLogin && (
-              <div className="rounded-2xl border border-slate-800 bg-slate-950/40 p-4 space-y-3">
-                <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-400">
-                  <MapPin className="h-4 w-4 text-purple-400" />
+              <div className="rounded-2xl border border-emerald-100 bg-emerald-50/20 p-4 space-y-3">
+                <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-emerald-800">
+                  <MapPin className="h-4 w-4 text-emerald-600" />
                   <span>Default Location Details</span>
                 </div>
                 
@@ -139,7 +141,7 @@ const Auth = ({ onLoginSuccess }) => {
                     type="text"
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
-                    className="w-full rounded-lg border border-slate-800 bg-slate-900/60 px-3 py-1.5 text-xs text-slate-200 focus:border-purple-500 focus:outline-none transition-colors"
+                    className="w-full rounded-lg border border-slate-200 bg-white/90 px-3 py-1.5 text-xs text-slate-800 focus:border-emerald-500 focus:outline-none transition-all"
                     placeholder="e.g. Indiranagar, Bangalore"
                   />
                 </div>
@@ -152,7 +154,7 @@ const Auth = ({ onLoginSuccess }) => {
                       step="any"
                       value={lat}
                       onChange={(e) => setLat(parseFloat(e.target.value))}
-                      className="w-full rounded-lg border border-slate-800 bg-slate-900/60 px-3 py-1.5 text-xs text-slate-200 focus:border-purple-500 focus:outline-none transition-colors font-mono"
+                      className="w-full rounded-lg border border-slate-200 bg-white/90 px-3 py-1.5 text-xs text-slate-800 focus:border-emerald-500 focus:outline-none transition-all font-mono"
                     />
                   </div>
                   <div>
@@ -162,7 +164,7 @@ const Auth = ({ onLoginSuccess }) => {
                       step="any"
                       value={lng}
                       onChange={(e) => setLng(parseFloat(e.target.value))}
-                      className="w-full rounded-lg border border-slate-800 bg-slate-900/60 px-3 py-1.5 text-xs text-slate-200 focus:border-purple-500 focus:outline-none transition-colors font-mono"
+                      className="w-full rounded-lg border border-slate-200 bg-white/90 px-3 py-1.5 text-xs text-slate-800 focus:border-emerald-500 focus:outline-none transition-all font-mono"
                     />
                   </div>
                 </div>
@@ -170,11 +172,11 @@ const Auth = ({ onLoginSuccess }) => {
             )}
           </div>
 
-          <div>
+          <div className="pt-2">
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full flex items-center justify-center rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 py-3 text-sm font-black text-white hover:from-purple-500 hover:to-indigo-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-slate-950 transition-all shadow-lg"
+              className="w-full flex items-center justify-center rounded-xl bg-emerald-600 py-3 text-sm font-bold text-white hover:bg-emerald-500 transition-all shadow-md shadow-emerald-600/10 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
             >
               {isLoading ? (
                 <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
@@ -193,7 +195,7 @@ const Auth = ({ onLoginSuccess }) => {
               setIsLogin(!isLogin);
               setError('');
             }}
-            className="text-xs font-bold text-purple-400 hover:text-purple-300 hover:underline"
+            className="text-xs font-bold text-emerald-600 hover:text-emerald-500 hover:underline"
           >
             {isLogin ? "Don't have an account? Sign Up" : 'Already have an account? Sign In'}
           </button>
