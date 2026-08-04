@@ -63,7 +63,7 @@ function App() {
       setSourceStation(closest); // AUTOMATIC SELECTION of Source Station!
       setSelectedStation(closest);
       setSourceLocation({
-        name: `Current Location (${lat.toFixed(4)}, ${lng.toFixed(4)})`,
+        name: 'Current Location',
         lat,
         lng
       });
@@ -140,13 +140,13 @@ function App() {
       (position) => {
         const lat = position.coords.latitude;
         const lng = position.coords.longitude;
-        console.log(`Automatic geolocation success: ${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+        console.log('Automatic geolocation success');
 
         // Update local location state
         const updatedLocation = {
           lat,
           lng,
-          address: `Current GPS Location (${lat.toFixed(4)}, ${lng.toFixed(4)})`,
+          address: 'Current GPS Location',
         };
 
         setUser((prev) => {

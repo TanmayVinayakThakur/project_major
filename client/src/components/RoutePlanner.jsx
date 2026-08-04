@@ -487,7 +487,7 @@ const RoutePlanner = ({
                   <div className="flex-1 pr-2">
                     <p className="font-bold text-slate-700">{opt.description}</p>
                     <p className="text-[9px] text-slate-400 uppercase mt-0.5 font-semibold tracking-wider">
-                      {opt.type === 'google' ? 'Google Maps Address' : opt.type === 'station' ? 'Metro Station' : 'Landmark'}
+                      {opt.type === 'google' ? 'Google Maps Address' : opt.type === 'osm' ? 'Address / Landmark' : opt.type === 'station' ? 'Metro Station' : 'Landmark'}
                     </p>
                   </div>
                 </button>
@@ -545,7 +545,7 @@ const RoutePlanner = ({
                   <div className="flex-1 pr-2">
                     <p className="font-bold text-slate-700">{opt.description}</p>
                     <p className="text-[9px] text-slate-400 uppercase mt-0.5 font-semibold tracking-wider">
-                      {opt.type === 'google' ? 'Google Maps Address' : opt.type === 'station' ? 'Metro Station' : 'Landmark'}
+                      {opt.type === 'google' ? 'Google Maps Address' : opt.type === 'osm' ? 'Address / Landmark' : opt.type === 'station' ? 'Metro Station' : 'Landmark'}
                     </p>
                   </div>
                 </button>

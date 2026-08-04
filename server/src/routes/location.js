@@ -2,19 +2,32 @@ const express = require('express');
 const router = express.Router();
 const Station = require('../models/Station');
 
-// Static landmarks fallback list
-const LANDMARKS = [
-  { name: 'Lalbagh Botanical Garden', stationCode: 'LBGH' },
-  { name: 'Cubbon Park Garden', stationCode: 'CPBK' },
-  { name: 'Vidhana Soudha (Assembly)', stationCode: 'VSVY' },
-  { name: 'Kempegowda Majestic Bus Stand', stationCode: 'MSJP' },
-  { name: 'Yeshwanthpur Railway Station', stationCode: 'YWPR' },
-  { name: 'KSR Bengaluru City Railway Station', stationCode: 'CTRW' },
-  { name: 'Forum Mall Koramangala', stationCode: 'BTML' },
-  { name: 'Central Silk Board Junction', stationCode: 'CNRK' },
-  { name: 'Phoenix Marketcity Mall', stationCode: 'MSTH' },
-  { name: 'M.G. Road Boulevard / UB City', stationCode: 'MGRD' },
-];
+// Helper to query OpenStreetMap Nominatim API restricted to Bangalore bounds
+const queryOSMNominatim = async (query) => {
+  try {
+    // Restrict search to Bangalore box: west=77.3, south=12.7, east=77.9, north=13.2
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=8&countrycodes=in&viewbox=77.3,12.7,77.9,13.2&bounded=1`;
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'NammaRoute/1.0.0 (contact@nammaroute.local)'
+      }
+    });
+    if (!response.ok) {
+      console.warn(`OSM Nominatim error status ${response.status}`);
+      return [];
+    }
+    const data = await response.json();
+    return data.map((item) => ({
+      description: item.display_name,
+      lat: parseFloat(item.lat),
+      lng: parseFloat(item.lon),
+      type: 'osm'
+    }));
+  } catch (err) {
+    console.error('OSM Nominatim query failed:', err.message);
+    return [];
+  }
+};
 
 // @route   GET /api/location/autocomplete
 // @desc    Get autocomplete suggestions for address search
@@ -25,61 +38,10 @@ router.get('/autocomplete', async (req, res) => {
     return res.status(400).json({ message: 'Input query parameter is required' });
   }
 
-  const apiKey = req.headers['x-google-maps-key'] || process.env.GOOGLE_MAPS_API_KEY;
-
-  if (!apiKey) {
-    console.log('No Google Maps key found. Using local fallback search for autocomplete.');
-    return handleLocalAutocomplete(input, res);
-  }
-
   try {
-    const url = 'https://places.googleapis.com/v1/places:autocomplete';
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Goog-Api-Key': apiKey,
-        'X-Goog-Maps-Solution-ID': 'gmp_git_agentskills_v1'
-      },
-      body: JSON.stringify({
-        input: input,
-        locationBias: {
-          circle: {
-            center: {
-              latitude: 12.9716,
-              longitude: 77.5946
-            },
-            radius: 50000.0 // 50km around Bangalore
-          }
-        }
-      })
-    });
-
-    if (!response.ok) {
-      const errText = await response.text();
-      console.warn(`Places autocomplete error status ${response.status}: ${errText}. Using fallback.`);
-      return handleLocalAutocomplete(input, res);
-    }
-
-    const data = await response.json();
-    const suggestions = (data.suggestions || []).map(s => ({
-      description: s.placePrediction.text.text,
-      placeId: s.placePrediction.placeId,
-      type: 'google'
-    }));
-
-    return res.json(suggestions);
-  } catch (error) {
-    console.error('Autocomplete fetch error:', error);
-    return handleLocalAutocomplete(input, res);
-  }
-});
-
-const handleLocalAutocomplete = async (input, res) => {
-  try {
-    const query = input.toLowerCase();
+    // 1. Check local station name matches first
     const stations = await Station.find({});
-
+    const query = input.toLowerCase();
     const matchedStations = stations
       .filter(s => s.name.toLowerCase().includes(query) || s.code.toLowerCase().includes(query))
       .map(s => ({
@@ -89,25 +51,17 @@ const handleLocalAutocomplete = async (input, res) => {
         type: 'station'
       }));
 
-    const matchedLandmarks = LANDMARKS
-      .filter(l => l.name.toLowerCase().includes(query))
-      .map(l => {
-        const station = stations.find(s => s.code === l.stationCode);
-        return {
-          description: `${l.name} (Landmark)`,
-          lat: station ? station.coordinates.lat : 12.9716,
-          lng: station ? station.coordinates.lng : 77.5946,
-          type: 'landmark'
-        };
-      });
+    // 2. Query OSM Nominatim for general Bangalore addresses
+    const osmSuggestions = await queryOSMNominatim(input);
 
-    const suggestions = [...matchedStations, ...matchedLandmarks].slice(0, 6);
+    // Merge both lists
+    const suggestions = [...matchedStations, ...osmSuggestions].slice(0, 10);
     return res.json(suggestions);
-  } catch (err) {
-    console.error('Local fallback search error:', err);
-    return res.status(500).json({ message: 'Error in local search', error: err.message });
+  } catch (error) {
+    console.error('Autocomplete fetch error:', error);
+    return res.status(500).json({ message: 'Error fetching suggestions', error: error.message });
   }
-};
+});
 
 // @route   GET /api/location/geocode
 // @desc    Geocode an address or place ID to coordinates
@@ -118,13 +72,34 @@ router.get('/geocode', async (req, res) => {
     return res.status(400).json({ message: 'Either address or placeId parameter is required' });
   }
 
-  const apiKey = req.headers['x-google-maps-key'] || process.env.GOOGLE_MAPS_API_KEY;
-
-  if (!apiKey) {
-    return res.status(400).json({ message: 'Google Maps API key is required for Geocoding service.' });
-  }
-
   try {
+    // 1. Try OSM Nominatim first for free geocoding
+    if (address) {
+      const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1&countrycodes=in&viewbox=77.3,12.7,77.9,13.2&bounded=1`;
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': 'NammaRoute/1.0.0 (contact@nammaroute.local)'
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (data && data.length > 0) {
+          const first = data[0];
+          return res.json({
+            address: first.display_name,
+            lat: parseFloat(first.lat),
+            lng: parseFloat(first.lon)
+          });
+        }
+      }
+    }
+
+    // 2. Fallback to Google Maps if OSM yields nothing
+    const apiKey = req.headers['x-google-maps-key'] || process.env.GOOGLE_MAPS_API_KEY;
+    if (!apiKey) {
+      return res.status(404).json({ message: 'No geocoding results found via OSM Nominatim and no Google Maps key configured' });
+    }
+
     let url = 'https://maps.googleapis.com/maps/api/geocode/json';
     if (placeId) {
       url += `?place_id=${placeId}&key=${apiKey}`;

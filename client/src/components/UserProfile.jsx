@@ -172,7 +172,7 @@ const UserProfile = ({ user, token, onUpdateProfile, onLogout, stations, onSetNe
         const currentLng = position.coords.longitude;
         setLat(currentLat);
         setLng(currentLng);
-        const label = `GPS Location (${currentLat.toFixed(4)}, ${currentLng.toFixed(4)})`;
+        const label = 'GPS Current Location';
         setAddress(label);
         setSearchQuery(label);
         setIsLocating(false);
@@ -299,25 +299,13 @@ const UserProfile = ({ user, token, onUpdateProfile, onLogout, stations, onSetNe
                   <div className="flex-1 pr-2">
                     <p className="font-bold text-slate-700">{opt.description}</p>
                     <p className="text-[9px] text-slate-400 uppercase mt-0.5 font-semibold tracking-wider">
-                      {opt.type === 'google' ? 'Google Maps Address' : opt.type === 'station' ? 'Metro Station' : 'Landmark'}
+                      {opt.type === 'google' ? 'Google Maps Address' : opt.type === 'osm' ? 'Address / Landmark' : opt.type === 'station' ? 'Metro Station' : 'Landmark'}
                     </p>
                   </div>
                 </button>
               ))}
             </div>
           )}
-        </div>
-
-        {/* Read-Only Coordinates display box */}
-        <div className="grid grid-cols-2 gap-3 rounded-xl bg-slate-50 p-3 border border-slate-200/60 text-xs">
-          <div>
-            <span className="block text-[9px] font-bold uppercase text-slate-500 mb-0.5">Latitude</span>
-            <span className="font-mono text-slate-700 font-semibold">{lat.toFixed(4)}</span>
-          </div>
-          <div>
-            <span className="block text-[9px] font-bold uppercase text-slate-500 mb-0.5">Longitude</span>
-            <span className="font-mono text-slate-700 font-semibold">{lng.toFixed(4)}</span>
-          </div>
         </div>
 
         {/* Optional Google Maps API Key Input */}

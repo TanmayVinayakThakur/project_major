@@ -486,12 +486,6 @@ const MetroMap = ({
                   {selectedStation.isInterchange ? 'Yes 🔄' : 'No'}
                 </span>
               </div>
-              <div className="flex justify-between">
-                <span>GPS Coordinates</span>
-                <span className="font-mono text-slate-300">
-                  {selectedStation.coordinates.lat.toFixed(4)}, {selectedStation.coordinates.lng.toFixed(4)}
-                </span>
-              </div>
             </div>
 
             <div className="mt-4">
