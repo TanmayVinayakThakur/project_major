@@ -37,68 +37,39 @@ const predictFare = (distance, hour) => {
   });
 };
 
-// Query Google Maps Routes API (or fall back to simulated driving)
+// Fetch road-following route from OSRM
 const getDrivingRoute = async (fromLat, fromLng, toLat, toLng, apiKey) => {
-  if (!apiKey) {
-    // Log once and use fallback
-    return getGeometricFallbackRoute(fromLat, fromLng, toLat, toLng);
-  }
-
   try {
-    const url = 'https://routes.googleapis.com/directions/v2:computeRoutes';
+    // Query public OSRM server (long,lat order)
+    const url = `https://router.project-osrm.org/route/v1/driving/${parseFloat(fromLng)},${parseFloat(fromLat)};${parseFloat(toLng)},${parseFloat(toLat)}?overview=full&geometries=geojson`;
     const response = await fetch(url, {
-      method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'X-Goog-Api-Key': apiKey,
-        'X-Goog-FieldMask': 'routes.duration,routes.distanceMeters',
-        'X-Goog-Maps-Solution-ID': 'gmp_git_agentskills_v1'
-      },
-      body: JSON.stringify({
-        origin: {
-          location: {
-            latLng: {
-              latitude: parseFloat(fromLat),
-              longitude: parseFloat(fromLng)
-            }
-          }
-        },
-        destination: {
-          location: {
-            latLng: {
-              latitude: parseFloat(toLat),
-              longitude: parseFloat(toLng)
-            }
-          }
-        },
-        travelMode: 'DRIVE',
-        routingPreference: 'TRAFFIC_AWARE'
-      })
+        'User-Agent': 'CommuteIQ/1.0.0 (contact@commuteiq.local)'
+      }
     });
 
-    if (!response.ok) {
-      console.warn(`Routes API responded with status ${response.status}. Using fallback.`);
-      return getGeometricFallbackRoute(fromLat, fromLng, toLat, toLng);
+    if (response.ok) {
+      const data = await response.json();
+      if (data.routes && data.routes.length > 0) {
+        const route = data.routes[0];
+        const distanceKm = route.distance / 1000;
+        const durationMinutes = Math.ceil(route.duration / 60);
+        // OSRM coordinates are [longitude, latitude] -> convert to [latitude, longitude]
+        const path = (route.geometry.coordinates || []).map(coords => [coords[1], coords[0]]);
+
+        return {
+          distanceKm: parseFloat(distanceKm.toFixed(2)),
+          durationMinutes,
+          path
+        };
+      }
     }
-
-    const data = await response.json();
-    if (!data.routes || data.routes.length === 0) {
-      return getGeometricFallbackRoute(fromLat, fromLng, toLat, toLng);
-    }
-
-    const route = data.routes[0];
-    const distanceKm = route.distanceMeters / 1000;
-    const durationSeconds = parseFloat(route.duration.replace('s', ''));
-    const durationMinutes = Math.ceil(durationSeconds / 60);
-
-    return {
-      distanceKm: parseFloat(distanceKm.toFixed(2)),
-      durationMinutes
-    };
   } catch (err) {
-    console.error(`Routes API fetch failed: ${err.message}. Using fallback.`);
-    return getGeometricFallbackRoute(fromLat, fromLng, toLat, toLng);
+    console.error(`OSRM route fetch failed: ${err.message}. Using fallback.`);
   }
+
+  // Fallback to geometric straight line
+  return getGeometricFallbackRoute(fromLat, fromLng, toLat, toLng);
 };
 
 const getGeometricFallbackRoute = (lat1, lng1, lat2, lng2) => {
@@ -108,7 +79,11 @@ const getGeometricFallbackRoute = (lat1, lng1, lat2, lng2) => {
   const durationMinutes = Math.ceil((distanceKm / 20) * 60);
   return {
     distanceKm,
-    durationMinutes
+    durationMinutes,
+    path: [
+      [parseFloat(lat1), parseFloat(lng1)],
+      [parseFloat(lat2), parseFloat(lng2)]
+    ]
   };
 };
 
@@ -183,6 +158,7 @@ router.post('/', async (req, res) => {
       distanceKm: uberRoute.distanceKm,
       timeMinutes: uberRoute.durationMinutes,
       costRupees: uberCost,
+      path: uberRoute.path,
     };
 
     // 4. Hybrid Route Analysis
@@ -192,9 +168,6 @@ router.post('/', async (req, res) => {
     // Skip the loop if it's the exact same station
     if (startStation.code !== endStation.code) {
       for (const sNode of metroResult.path) {
-        // Trivial case: If it is the start station, it is equivalent to pure Uber (except walk to start)
-        // If it is the end station, it is equivalent to pure Metro
-        
         // Calculate metro path from startStation to sNode
         const partialMetro = findRoute(stations, startStation._id, sNode._id, 'travelTime');
         if (!partialMetro) continue;
@@ -221,28 +194,22 @@ router.post('/', async (req, res) => {
           cabFare: cabCost,
           totalTimeMinutes: totalTime,
           totalCostRupees: totalCost,
+          path: cabRoute.path,
         });
       }
     }
 
     // Sort hybrid candidates to find the best compromise
-    // Best hybrid is the one that minimizes time while being significantly cheaper than pure Uber,
-    // or saves significant time over pure Metro.
     let bestHybrid = null;
     if (hybridCandidates.length > 0) {
-      // Find candidate that saves the most time compared to pure metro,
-      // but is cheaper than pure Uber.
-      // Or simply sort by a weighted score or find the one with the minimum time that costs less than Uber.
       const validHybrids = hybridCandidates.filter(
         (c) => c.totalCostRupees < pureUber.costRupees && c.totalTimeMinutes < pureMetro.totalTimeMinutes
       );
 
       if (validHybrids.length > 0) {
-        // Sort by fastest
         validHybrids.sort((a, b) => a.totalTimeMinutes - b.totalTimeMinutes);
         bestHybrid = validHybrids[0];
       } else {
-        // If none is cheaper and faster at the same time, pick the fastest hybrid overall (excluding trivial endpoints)
         hybridCandidates.sort((a, b) => a.totalTimeMinutes - b.totalTimeMinutes);
         bestHybrid = hybridCandidates[Math.floor(hybridCandidates.length / 2)] || null;
       }
@@ -284,7 +251,6 @@ router.post('/', async (req, res) => {
     }
 
     // For Cheaper:
-    // Metro is almost always cheaper. If hybrid exists and is faster than metro and relatively cheap, suggest it as a smart upgrade.
     recommendationCheaper = {
       type: 'metro',
       title: 'Namma Metro',

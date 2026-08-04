@@ -1,30 +1,41 @@
 import React, { useState, useEffect } from 'react';
+import { RefreshCw, ShieldAlert, Layers } from 'lucide-react';
 import Auth from './components/Auth';
-import MetroMap from './components/MetroMap';
-import UserProfile from './components/UserProfile';
 import RoutePlanner from './components/RoutePlanner';
-import { ShieldAlert, RefreshCw, Compass } from 'lucide-react';
+import MetroMap from './components/MetroMap';
 
-// Haversine distance helper
+// Helper to calculate coordinate distances (Haversine)
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
-  const r = 6371; // Earth radius in km
-  const p = Math.PI / 180;
-  const a = 0.5 - Math.cos((lat2 - lat1) * p) / 2 +
-            Math.cos(lat1 * p) * Math.cos(lat2 * p) *
-            (1 - Math.cos((lon2 - lon1) * p)) / 2;
-  return r * 2 * Math.asin(Math.sqrt(a));
+  const R = 6371; // radius in km
+  const dLat = (lat2 - lat1) * (Math.PI / 180);
+  const dLon = (lon2 - lon1) * (Math.PI / 180);
+  // Simple geometric approximation is fine for frontend closest station logic
+  const lat1Rad = lat1 * (Math.PI / 180);
+  const lat2Rad = lat2 * (Math.PI / 180);
+
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.sin(dLon / 2) * Math.sin(dLon / 2) * Math.cos(lat1Rad) * Math.cos(lat2Rad);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+};
+
+// Simplified distance calc helper
+const calculateDistanceSimple = (lat1, lon1, lat2, lon2) => {
+  const dLat = lat2 - lat1;
+  const dLon = lon2 - lon1;
+  return Math.sqrt(dLat * dLat + dLon * dLon) * 111; // 1 degree ~ 111km
 };
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem('token') || '');
   const [user, setUser] = useState(null);
   const [stations, setStations] = useState([]);
-  
-  // Routing States
   const [sourceStation, setSourceStation] = useState(null);
   const [destStation, setDestStation] = useState(null);
   const [sourceLocation, setSourceLocation] = useState(null);
   const [destLocation, setDestLocation] = useState(null);
+
   const [calculatedRoute, setCalculatedRoute] = useState(null);
   const [comparisonData, setComparisonData] = useState(null);
   const [comparisonLoading, setComparisonLoading] = useState(false);
@@ -37,6 +48,8 @@ function App() {
   const [userSyncing, setUserSyncing] = useState(!!localStorage.getItem('token'));
   const [connectionError, setConnectionError] = useState(false);
 
+  const [wizardStep, setWizardStep] = useState('setup'); // 'setup' | 'results'
+
   // Helper to find closest station to coordinates
   const findClosestStationToCoords = (lat, lng, stationList) => {
     const list = stationList || stations;
@@ -44,7 +57,7 @@ function App() {
     let minDistance = Infinity;
     let closest = null;
     list.forEach((station) => {
-      const dist = calculateDistance(lat, lng, station.coordinates.lat, station.coordinates.lng);
+      const dist = calculateDistanceSimple(lat, lng, station.coordinates.lat, station.coordinates.lng);
       if (dist < minDistance) {
         minDistance = dist;
         closest = station;
@@ -53,14 +66,14 @@ function App() {
     return closest;
   };
 
-  // 1. Helper to find closest station to coordinates
+  // Helper to find closest station to coordinates and select it
   const findAndSetClosestStation = (lat, lng, stationList) => {
     const list = stationList || stations;
     const closest = findClosestStationToCoords(lat, lng, list);
 
     if (closest) {
       setNearestStation(closest);
-      setSourceStation(closest); // AUTOMATIC SELECTION of Source Station!
+      setSourceStation(closest);
       setSelectedStation(closest);
       setSourceLocation({
         name: 'Current Location',
@@ -107,7 +120,7 @@ function App() {
     }
   };
 
-  // 2. Fetch all metro stations
+  // Fetch all metro stations
   const fetchStations = async () => {
     try {
       setStationsLoading(true);
@@ -131,18 +144,16 @@ function App() {
     }
   };
 
-  // 3. Auto geolocation lookup
+  // Auto geolocation lookup
   const triggerAutoGeolocation = (stationList) => {
     if (!navigator.geolocation) return;
 
-    console.log('Requesting automatic browser geolocation (high accuracy)...');
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const lat = position.coords.latitude;
         const lng = position.coords.longitude;
         console.log('Automatic geolocation success');
 
-        // Update local location state
         const updatedLocation = {
           lat,
           lng,
@@ -151,21 +162,19 @@ function App() {
 
         setUser((prev) => {
           if (!prev) return null;
-          // Update the user's active coordinate set
           return { ...prev, location: updatedLocation };
         });
 
-        // Recalculate and select closest station from live GPS coordinates
         findAndSetClosestStation(lat, lng, stationList);
       },
       (error) => {
-        console.warn('Browser geolocation prompt declined or failed. Sticking to profile defaults:', error.message);
+        console.warn('Browser geolocation default bypassed:', error.message);
       },
       { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
     );
   };
 
-  // 4. Sync session and load routes
+  // Sync session and load routes
   useEffect(() => {
     const initializeApp = async () => {
       const fetchedStations = await fetchStations();
@@ -178,27 +187,33 @@ function App() {
       try {
         const res = await fetch('/api/auth/profile', {
           headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        if (res.ok) {
-          const profileData = await res.json();
-          setUser(profileData);
-
-          // If the user profile contains a saved location, set that as the initial default
-          if (profileData.location && profileData.location.lat && profileData.location.lng) {
-            findAndSetClosestStation(profileData.location.lat, profileData.location.lng, fetchedStations);
+            'Authorization': `Bearer ${token}`
           }
-
-          // Trigger live browser geolocation automatically to override profile coordinates with active GPS location
-          triggerAutoGeolocation(fetchedStations);
-
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setUser(data);
+          
+          if (data.location && data.location.lat && data.location.lng) {
+            const list = fetchedStations.length > 0 ? fetchedStations : [];
+            const closest = findClosestStationToCoords(data.location.lat, data.location.lng, list);
+            if (closest) {
+              setNearestStation(closest);
+              setSourceStation(closest);
+              setSourceLocation({
+                name: data.location.address || 'Current Location',
+                lat: data.location.lat,
+                lng: data.location.lng
+              });
+            }
+          } else {
+            triggerAutoGeolocation(fetchedStations);
+          }
         } else {
           handleLogout();
         }
       } catch (err) {
-        console.error('Error syncing user session:', err);
+        console.error('Error verifying user:', err);
       } finally {
         setUserSyncing(false);
       }
@@ -207,7 +222,7 @@ function App() {
     initializeApp();
   }, [token]);
 
-  // 5. Automatically calculate route when source & destination are selected
+  // Automatically calculate route when source & destination are selected
   useEffect(() => {
     const fetchCalculatedRoute = async () => {
       if (!sourceStation || !destStation) {
@@ -219,14 +234,14 @@ function App() {
       try {
         setComparisonLoading(true);
         
-        // 1. Fetch Namma Metro Dijkstra route
+        // 1. Fetch Dijkstra route
         const resRoute = await fetch(`/api/route?from=${sourceStation.code}&to=${destStation.code}`);
         if (resRoute.ok) {
           const dataRoute = await resRoute.json();
           setCalculatedRoute(dataRoute);
         }
 
-        // 2. Fetch comparative (Uber vs Metro vs Hybrid) data
+        // 2. Fetch comparative data
         const gKey = localStorage.getItem('google_maps_api_key') || '';
         
         const fromBody = sourceLocation 
@@ -270,6 +285,7 @@ function App() {
     localStorage.setItem('token', userToken);
     setToken(userToken);
     setUser(userData);
+    setWizardStep('setup');
   };
 
   // Sync active mode automatically when preference changes
@@ -297,14 +313,7 @@ function App() {
     setComparisonData(null);
     setPreference('cheaper');
     setActiveMode('metro');
-  };
-
-  // Update profile in local state
-  const handleUpdateProfile = (updatedUser) => {
-    setUser(updatedUser);
-    if (updatedUser.location && updatedUser.location.lat && updatedUser.location.lng) {
-      findAndSetClosestStation(updatedUser.location.lat, updatedUser.location.lng);
-    }
+    setWizardStep('setup');
   };
 
   // Clear planner fields
@@ -317,6 +326,7 @@ function App() {
     setComparisonData(null);
     setPreference('cheaper');
     setActiveMode('metro');
+    setWizardStep('setup');
   };
 
   return (
@@ -328,18 +338,27 @@ function App() {
             <span className="text-3xl animate-pulse">🚇</span>
             <div>
               <h1 className="text-xl font-black text-emerald-800">
-                NammaRoute
+                CommuteIQ
               </h1>
               <p className="text-[10px] uppercase tracking-widest text-emerald-600 font-bold">
-                Bangalore Metro Route Guide
+                Smart Commute Guide
               </p>
             </div>
           </div>
           
           {user && (
-            <div className="flex items-center gap-2 rounded-full border border-emerald-100 bg-emerald-50 px-3.5 py-1.5 text-xs text-emerald-800 font-semibold shadow-sm">
-              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span>{user.name}</span>
+            <div className="flex items-center gap-3 animate-fadeIn">
+              <div className="flex items-center gap-2 rounded-full border border-emerald-100 bg-emerald-50 px-3.5 py-1.5 text-xs text-emerald-800 font-bold shadow-sm">
+                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span>{user.name}</span>
+              </div>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="text-xs font-bold text-rose-600 hover:text-rose-500 hover:underline border border-rose-200 bg-white rounded-xl px-3 py-1.5 transition-all shadow-sm"
+              >
+                Sign Out
+              </button>
             </div>
           )}
         </div>
@@ -349,34 +368,33 @@ function App() {
       <main className="flex-1 mx-auto max-w-7xl w-full p-4 md:p-6 lg:p-8">
         {userSyncing ? (
           <div className="flex h-[50vh] items-center justify-center">
-            <div className="text-center text-slate-400">
-              <RefreshCw className="mx-auto h-8 w-8 animate-spin text-purple-500 mb-3" />
-              <p className="font-medium text-sm">Synchronizing your session...</p>
+            <div className="text-center text-slate-500">
+              <RefreshCw className="mx-auto h-8 w-8 animate-spin text-emerald-600 mb-3" />
+              <p className="font-bold text-xs uppercase tracking-wider text-emerald-700">Synchronizing session...</p>
             </div>
           </div>
         ) : !token ? (
           <Auth onLoginSuccess={handleLoginSuccess} />
         ) : connectionError ? (
-          <div className="mx-auto max-w-md rounded-3xl border border-rose-950/50 bg-rose-950/15 p-8 text-center backdrop-blur-lg animate-fadeIn">
-            <ShieldAlert className="mx-auto h-12 w-12 text-rose-500 mb-4" />
-            <h2 className="text-xl font-black text-white mb-2">Server Connection Error</h2>
-            <p className="text-sm text-rose-300 leading-relaxed mb-6">
-              We couldn't connect to the backend server or the database. Please ensure the backend is running and MongoDB is active.
+          <div className="mx-auto max-w-md rounded-3xl border border-rose-200 bg-white p-8 text-center shadow-lg animate-fadeIn">
+            <ShieldAlert className="mx-auto h-12 w-12 text-rose-500 mb-4 animate-bounce" />
+            <h2 className="text-xl font-black text-slate-800 mb-2">Server Connection Error</h2>
+            <p className="text-xs text-slate-500 leading-relaxed mb-6 font-semibold">
+              We couldn't connect to the backend server or the database. Please ensure the backend is running.
             </p>
             <button
               onClick={fetchStations}
-              className="rounded-xl bg-rose-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-rose-500 transition-colors shadow-md"
+              className="rounded-xl bg-rose-600 px-5 py-2.5 text-xs font-bold text-white hover:bg-rose-500 transition-colors shadow-sm"
             >
               Retry Connection
             </button>
           </div>
         ) : (
           <div className="space-y-6 animate-fadeIn">
-            {/* 3-Panel Grid Dashboard */}
-            <div className="grid grid-cols-1 gap-6 xl:grid-cols-4">
-              
-              {/* Panel 1: Route Planner (1/4 column) */}
-              <div className="xl:col-span-1">
+            
+            {/* Step 1: Location Setup Form */}
+            {wizardStep === 'setup' && (
+              <div className="flex justify-center items-center py-6">
                 <RoutePlanner
                   stations={stations}
                   sourceStation={sourceStation}
@@ -385,57 +403,91 @@ function App() {
                   destLocation={destLocation}
                   onSelectSource={handleSelectSource}
                   onSelectDest={handleSelectDest}
-                  calculatedRoute={calculatedRoute}
                   onClearRoute={handleClearRoute}
-                  comparisonData={comparisonData}
-                  comparisonLoading={comparisonLoading}
-                  preference={preference}
-                  setPreference={setPreference}
-                  activeMode={activeMode}
-                  setActiveMode={setActiveMode}
+                  view="setup"
+                  onPlanCommute={() => setWizardStep('results')}
                 />
               </div>
- 
-              {/* Panel 2: Graphical Leaflet Satellite Map (2/4 column) */}
-              <div className="xl:col-span-2">
-                <MetroMap
-                  stations={stations}
-                  userLocation={user?.location}
-                  nearestStation={nearestStation}
-                  onSelectStation={setSelectedStation}
-                  selectedStation={selectedStation}
-                  sourceStation={sourceStation}
-                  destStation={destStation}
-                  sourceLocation={sourceLocation}
-                  destLocation={destLocation}
-                  onSelectSource={handleSelectSource}
-                  onSelectDest={handleSelectDest}
-                  calculatedRoute={calculatedRoute}
-                  activeMode={activeMode}
-                  comparisonData={comparisonData}
-                />
-              </div>
+            )}
 
-              {/* Panel 3: User Profile & Geolocation (1/4 column) */}
-              <div className="xl:col-span-1">
-                <UserProfile
-                  user={user}
-                  token={token}
-                  onUpdateProfile={handleUpdateProfile}
-                  onLogout={handleLogout}
-                  stations={stations}
-                  onSetNearestStation={setNearestStation}
-                />
-              </div>
+            {/* Step 2: Route Analysis Results & Map */}
+            {wizardStep === 'results' && (
+              <div className="space-y-6 animate-fadeIn">
+                {/* Wizard Route Summary Header */}
+                <div className="flex flex-col md:flex-row items-center justify-between gap-4 rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm shadow-emerald-500/5">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 font-bold shadow-sm text-lg">
+                      📍
+                    </div>
+                    <div>
+                      <h2 className="text-sm font-bold text-slate-800">
+                        {sourceLocation?.name || sourceStation?.name} ➡️ {destLocation?.name || destStation?.name}
+                      </h2>
+                      <p className="text-[10px] text-slate-500 font-bold mt-0.5 uppercase tracking-wider">Commute Routing Results</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setWizardStep('setup')}
+                    className="rounded-xl border border-emerald-200 bg-white text-emerald-700 hover:bg-emerald-50 px-4 py-2 text-xs font-bold transition-all shadow-sm flex items-center gap-1.5"
+                  >
+                    🔄 Modify Commute Details
+                  </button>
+                </div>
 
-            </div>
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                  {/* Left Column: Plan list */}
+                  <div className="lg:col-span-1">
+                    <RoutePlanner
+                      stations={stations}
+                      sourceStation={sourceStation}
+                      destStation={destStation}
+                      sourceLocation={sourceLocation}
+                      destLocation={destLocation}
+                      onSelectSource={handleSelectSource}
+                      onSelectDest={handleSelectDest}
+                      calculatedRoute={calculatedRoute}
+                      onClearRoute={handleClearRoute}
+                      comparisonData={comparisonData}
+                      comparisonLoading={comparisonLoading}
+                      preference={preference}
+                      setPreference={setPreference}
+                      activeMode={activeMode}
+                      setActiveMode={setActiveMode}
+                      view="results"
+                    />
+                  </div>
+
+                  {/* Right Column: Live Map */}
+                  <div className="lg:col-span-2">
+                    <MetroMap
+                      stations={stations}
+                      userLocation={user?.location}
+                      nearestStation={nearestStation}
+                      onSelectStation={setSelectedStation}
+                      selectedStation={selectedStation}
+                      sourceStation={sourceStation}
+                      destStation={destStation}
+                      sourceLocation={sourceLocation}
+                      destLocation={destLocation}
+                      onSelectSource={handleSelectSource}
+                      onSelectDest={handleSelectDest}
+                      calculatedRoute={calculatedRoute}
+                      activeMode={activeMode}
+                      comparisonData={comparisonData}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
           </div>
         )}
       </main>
 
       {/* Footer */}
       <footer className="border-t border-emerald-100 bg-white/60 py-6 text-center text-xs text-slate-500">
-        <p>© 2026 NammaRoute. Built with React + Express + MongoDB.</p>
+        <p>© 2026 CommuteIQ. Built with React + Express + MongoDB.</p>
       </footer>
     </div>
   );

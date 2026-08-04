@@ -2,31 +2,63 @@ const express = require('express');
 const router = express.Router();
 const Station = require('../models/Station');
 
-// Helper to query OpenStreetMap Nominatim API restricted to Bangalore bounds
+// Helper to query OpenStreetMap Nominatim API restricted to Bangalore bounds, with country-wide fallback
 const queryOSMNominatim = async (query) => {
   try {
-    // Restrict search to Bangalore box: west=77.3, south=12.7, east=77.9, north=13.2
-    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=8&countrycodes=in&viewbox=77.3,12.7,77.9,13.2&bounded=1`;
-    const response = await fetch(url, {
+    // 1. Try bounded search first (strictly limited to Bangalore box: west=77.3, south=12.7, east=77.9, north=13.2)
+    const boundedUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=8&countrycodes=in&viewbox=77.3,12.7,77.9,13.2&bounded=1`;
+    const response = await fetch(boundedUrl, {
       headers: {
-        'User-Agent': 'NammaRoute/1.0.0 (contact@nammaroute.local)'
+        'User-Agent': 'CommuteIQ/1.0.0 (contact@commuteiq.local)'
       }
     });
-    if (!response.ok) {
-      console.warn(`OSM Nominatim error status ${response.status}`);
-      return [];
+
+    if (response.ok) {
+      const data = await response.json();
+      // If we got a good number of results, return them
+      if (data && data.length >= 3) {
+        return data.map((item) => ({
+          description: item.display_name,
+          lat: parseFloat(item.lat),
+          lng: parseFloat(item.lon),
+          type: 'osm'
+        }));
+      }
+
+      // 2. Secondary fallback lookup without the strict bounding box limit (bounded=1 omitted)
+      // but still biased to Bangalore viewbox and restricted to India
+      const fallbackUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=8&countrycodes=in&viewbox=77.3,12.7,77.9,13.2`;
+      const fallbackResponse = await fetch(fallbackUrl, {
+        headers: {
+          'User-Agent': 'CommuteIQ/1.0.0 (contact@commuteiq.local)'
+        }
+      });
+
+      if (fallbackResponse.ok) {
+        const fallbackData = await fallbackResponse.json();
+        const combined = [...data, ...fallbackData];
+        
+        // Deduplicate results by display_name
+        const unique = [];
+        const seen = new Set();
+        for (const item of combined) {
+          if (!seen.has(item.display_name)) {
+            seen.add(item.display_name);
+            unique.push(item);
+          }
+        }
+        return unique.map((item) => ({
+          description: item.display_name,
+          lat: parseFloat(item.lat),
+          lng: parseFloat(item.lon),
+          type: 'osm'
+        }));
+      }
     }
-    const data = await response.json();
-    return data.map((item) => ({
-      description: item.display_name,
-      lat: parseFloat(item.lat),
-      lng: parseFloat(item.lon),
-      type: 'osm'
-    }));
   } catch (err) {
     console.error('OSM Nominatim query failed:', err.message);
-    return [];
   }
+  return [];
 };
 
 // @route   GET /api/location/autocomplete
@@ -51,7 +83,7 @@ router.get('/autocomplete', async (req, res) => {
         type: 'station'
       }));
 
-    // 2. Query OSM Nominatim for general Bangalore addresses
+    // 2. Query OSM Nominatim for general Bangalore addresses (with fallback)
     const osmSuggestions = await queryOSMNominatim(input);
 
     // Merge both lists
@@ -73,12 +105,12 @@ router.get('/geocode', async (req, res) => {
   }
 
   try {
-    // 1. Try OSM Nominatim first for free geocoding
+    // 1. Try OSM Nominatim first for free geocoding (restricted to India, biased to Bangalore)
     if (address) {
-      const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1&countrycodes=in&viewbox=77.3,12.7,77.9,13.2&bounded=1`;
+      const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1&countrycodes=in&viewbox=77.3,12.7,77.9,13.2`;
       const response = await fetch(url, {
         headers: {
-          'User-Agent': 'NammaRoute/1.0.0 (contact@nammaroute.local)'
+          'User-Agent': 'CommuteIQ/1.0.0 (contact@commuteiq.local)'
         }
       });
       if (response.ok) {
@@ -127,6 +159,38 @@ router.get('/geocode', async (req, res) => {
   } catch (error) {
     console.error('Geocoding fetch error:', error);
     return res.status(500).json({ message: 'Geocoding API fetch error', error: error.message });
+  }
+});
+
+// @route   GET /api/location/reverse
+// @desc    Reverse geocode coordinates to an address
+// @access  Public
+router.get('/reverse', async (req, res) => {
+  const { lat, lng } = req.query;
+  if (!lat || !lng) {
+    return res.status(400).json({ message: 'lat and lng parameters are required' });
+  }
+
+  try {
+    const url = `https://nominatim.openstreetmap.org/reverse?lat=${parseFloat(lat)}&lon=${parseFloat(lng)}&format=json`;
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'CommuteIQ/1.0.0 (contact@commuteiq.local)'
+      }
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      return res.json({
+        address: data.display_name || `GPS Location`,
+        lat: parseFloat(lat),
+        lng: parseFloat(lng)
+      });
+    }
+    return res.status(400).json({ message: 'Reverse geocoding failed' });
+  } catch (error) {
+    console.error('Reverse geocoding error:', error);
+    return res.status(500).json({ message: 'Reverse geocoding error', error: error.message });
   }
 });
 

@@ -354,8 +354,14 @@ const MetroMap = ({
         ? [destLocation.lat, destLocation.lng]
         : (destStation ? [destStation.coordinates.lat, destStation.coordinates.lng] : null);
       
-      if (destCoords) {
-        // Draw the Uber cab leg of the hybrid route (Vibrant Blue dashed line)
+      if (comparisonData.hybrid.path && comparisonData.hybrid.path.length > 0) {
+        L.polyline(comparisonData.hybrid.path, {
+          color: '#3B82F6',
+          weight: 5,
+          dashArray: '8, 8',
+          opacity: 0.9,
+        }).addTo(layersGroupRef.current);
+      } else if (destCoords) {
         L.polyline([exitStationCoords, destCoords], {
           color: '#3B82F6',
           weight: 5,
@@ -371,8 +377,13 @@ const MetroMap = ({
         ? [destLocation.lat, destLocation.lng]
         : (destStation ? [destStation.coordinates.lat, destStation.coordinates.lng] : null);
       
-      if (startCoords && destCoords) {
-        // Draw Uber path (Vibrant Blue thick line)
+      if (comparisonData.pureUber.path && comparisonData.pureUber.path.length > 0) {
+        L.polyline(comparisonData.pureUber.path, {
+          color: '#3B82F6',
+          weight: 6,
+          opacity: 0.8,
+        }).addTo(layersGroupRef.current);
+      } else if (startCoords && destCoords) {
         L.polyline([startCoords, destCoords], {
           color: '#3B82F6',
           weight: 6,
@@ -383,19 +394,25 @@ const MetroMap = ({
 
     // Adjust Map Fit Bounds
     if (hasRoute) {
-      // Zoom map to fit the calculated route path perfectly
       const routePoints = calculatedRoute.path.map((s) => [s.coordinates.lat, s.coordinates.lng]);
       
-      // Include cab start/endpoints to fit map bounds correctly
       if (activeMode === 'hybrid' && comparisonData?.hybrid) {
-        if (destLocation) routePoints.push([destLocation.lat, destLocation.lng]);
-        else if (destStation) routePoints.push([destStation.coordinates.lat, destStation.coordinates.lng]);
+        if (comparisonData.hybrid.path && comparisonData.hybrid.path.length > 0) {
+          comparisonData.hybrid.path.forEach(p => routePoints.push(p));
+        } else {
+          if (destLocation) routePoints.push([destLocation.lat, destLocation.lng]);
+          else if (destStation) routePoints.push([destStation.coordinates.lat, destStation.coordinates.lng]);
+        }
       } else if (activeMode === 'uber') {
-        if (sourceLocation) routePoints.push([sourceLocation.lat, sourceLocation.lng]);
-        else if (sourceStation) routePoints.push([sourceStation.coordinates.lat, sourceStation.coordinates.lng]);
-        
-        if (destLocation) routePoints.push([destLocation.lat, destLocation.lng]);
-        else if (destStation) routePoints.push([destStation.coordinates.lat, destStation.coordinates.lng]);
+        if (comparisonData.pureUber.path && comparisonData.pureUber.path.length > 0) {
+          comparisonData.pureUber.path.forEach(p => routePoints.push(p));
+        } else {
+          if (sourceLocation) routePoints.push([sourceLocation.lat, sourceLocation.lng]);
+          else if (sourceStation) routePoints.push([sourceStation.coordinates.lat, sourceStation.coordinates.lng]);
+          
+          if (destLocation) routePoints.push([destLocation.lat, destLocation.lng]);
+          else if (destStation) routePoints.push([destStation.coordinates.lat, destStation.coordinates.lng]);
+        }
       }
 
       if (sourceLocation) routePoints.push([sourceLocation.lat, sourceLocation.lng]);
@@ -404,7 +421,6 @@ const MetroMap = ({
       const bounds = L.latLngBounds(routePoints);
       mapInstance.current.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
     } else if (stations.length > 0 && !initialFitDone.current) {
-      // Center map on all stations on load
       const bounds = L.latLngBounds(mapBoundsPoints);
       mapInstance.current.fitBounds(bounds, { padding: [40, 40] });
       initialFitDone.current = true;
@@ -414,14 +430,14 @@ const MetroMap = ({
   return (
     <div className="flex flex-col gap-6 lg:flex-row animate-fadeIn">
       {/* Satellite Map Div */}
-      <div className="flex-1 flex flex-col rounded-2xl border border-slate-800 bg-slate-900/40 p-4 backdrop-blur-xl shadow-2xl">
+      <div className="flex-1 flex flex-col rounded-2xl border-2 border-emerald-200 bg-white p-4 shadow-lg ring-4 ring-emerald-500/5">
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Layers className="h-5 w-5 text-purple-400 animate-pulse" />
-            <h2 className="text-lg font-bold text-slate-100">Satellite Metro Map</h2>
+            <Layers className="h-5 w-5 text-emerald-600 animate-pulse" />
+            <h2 className="text-lg font-black text-emerald-850">Satellite Metro Map</h2>
           </div>
           {/* Legend */}
-          <div className="flex gap-4 text-xs font-semibold">
+          <div className="flex gap-4 text-xs font-semibold text-slate-700">
             <span className="flex items-center gap-1.5">
               <span className="h-3 w-3 rounded-full bg-[#A855F7]" /> Purple
             </span>
@@ -438,7 +454,7 @@ const MetroMap = ({
         <div
           ref={mapRef}
           id="map"
-          className="rounded-xl border border-slate-900 shadow-inner overflow-hidden"
+          className="rounded-xl border border-emerald-100 shadow-inner overflow-hidden"
           style={{ height: '520px', minHeight: '400px' }}
         />
       </div>
@@ -446,50 +462,50 @@ const MetroMap = ({
       {/* Sidebar Details Panel */}
       <div className="w-full lg:w-80 flex flex-col gap-4">
         {selectedStation ? (
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/40 p-5 backdrop-blur-xl shadow-2xl">
+          <div className="rounded-2xl border border-emerald-100 bg-white/90 p-5 shadow-lg">
             <span
               className="inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold"
               style={{
-                backgroundColor: `${getLineColor(selectedStation.line)}20`,
-                color: getLineColor(selectedStation.line),
-                border: `1px solid ${getLineColor(selectedStation.line)}50`,
+                backgroundColor: `${getLineColor(selectedStation.line)}15`,
+                color: selectedStation.line === 'Purple' ? '#A855F7' : selectedStation.line === 'Green' ? '#15803D' : '#854D0E',
+                border: `1px solid ${getLineColor(selectedStation.line)}30`,
               }}
             >
               {selectedStation.line} Line
             </span>
 
-            <h3 className="mt-3 text-xl font-black text-slate-100">{selectedStation.name}</h3>
+            <h3 className="mt-3 text-xl font-black text-slate-800">{selectedStation.name}</h3>
             <p className="text-xs text-slate-400 font-mono">Code: {selectedStation.code}</p>
 
             {/* Set as Start / End Action Buttons */}
-            <div className="mt-4 grid grid-cols-2 gap-2 border-t border-slate-800/80 pt-4">
+            <div className="mt-4 grid grid-cols-2 gap-2 border-t border-emerald-50 pt-4">
               <button
                 type="button"
                 onClick={() => onSelectSource(selectedStation)}
-                className="flex items-center justify-center rounded-lg bg-emerald-600/10 border border-emerald-500/30 py-2 text-xs font-bold text-emerald-400 hover:bg-emerald-600 hover:text-white transition-all shadow-sm"
+                className="flex items-center justify-center rounded-lg bg-emerald-600 px-2 py-2 text-xs font-bold text-white hover:bg-emerald-500 transition-all shadow-sm"
               >
                 Set as Start
               </button>
               <button
                 type="button"
                 onClick={() => onSelectDest(selectedStation)}
-                className="flex items-center justify-center rounded-lg bg-rose-600/10 border border-rose-500/30 py-2 text-xs font-bold text-rose-400 hover:bg-rose-600 hover:text-white transition-all shadow-sm"
+                className="flex items-center justify-center rounded-lg bg-rose-600 px-2 py-2 text-xs font-bold text-white hover:bg-rose-500 transition-all shadow-sm"
               >
                 Set as End
               </button>
             </div>
 
-            <div className="mt-4 border-t border-slate-800 pt-4 space-y-2 text-xs text-slate-400">
+            <div className="mt-4 border-t border-emerald-50 pt-4 space-y-2 text-xs text-slate-600">
               <div className="flex justify-between">
                 <span>Interchange Station</span>
-                <span className="font-semibold text-slate-200">
+                <span className="font-semibold text-slate-800">
                   {selectedStation.isInterchange ? 'Yes 🔄' : 'No'}
                 </span>
               </div>
             </div>
 
             <div className="mt-4">
-              <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2">Connected Stations</h4>
+              <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2 font-bold">Connected Stations</h4>
               <div className="space-y-1.5 max-h-40 overflow-y-auto">
                 {selectedStation.connections.map((conn, idx) => {
                   const target = stations.find((s) => s._id === conn.stationId || s.code === conn.stationId);
@@ -498,14 +514,14 @@ const MetroMap = ({
                     <div
                       key={idx}
                       onClick={() => onSelectStation(target)}
-                      className="flex items-center justify-between rounded-lg border border-slate-900 bg-slate-950/40 p-2 hover:bg-slate-800/20 transition-colors cursor-pointer text-xs"
+                      className="flex items-center justify-between rounded-lg border border-emerald-50 bg-emerald-50/10 p-2 hover:bg-emerald-50/40 transition-colors cursor-pointer text-xs"
                     >
                       <div className="flex items-center gap-1.5">
                         <span
                           className="h-1.5 w-1.5 rounded-full"
                           style={{ backgroundColor: getLineColor(target.line) }}
                         />
-                        <span className="font-semibold text-slate-300">{target.name}</span>
+                        <span className="font-semibold text-slate-700">{target.name}</span>
                       </div>
                       <span className="text-[10px] text-slate-500 font-mono">
                         {conn.distance} km
@@ -517,9 +533,9 @@ const MetroMap = ({
             </div>
           </div>
         ) : (
-          <div className="flex h-full min-h-[220px] flex-col items-center justify-center rounded-2xl border border-dashed border-slate-800 bg-slate-900/10 p-6 text-center text-slate-400 backdrop-blur-sm">
-            <Info className="h-8 w-8 text-slate-500 mb-2" />
-            <p className="text-sm font-medium">Select any station on the map to set it as route start/end, or view properties</p>
+          <div className="flex h-full min-h-[220px] flex-col items-center justify-center rounded-2xl border-2 border-dashed border-emerald-200 bg-white/40 p-6 text-center text-slate-500 shadow-sm">
+            <Info className="h-8 w-8 text-emerald-600 mb-2 animate-bounce" />
+            <p className="text-sm font-semibold leading-relaxed">Select any station on the map to set it as route start/end, or view properties</p>
           </div>
         )}
       </div>

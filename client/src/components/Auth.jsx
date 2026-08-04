@@ -64,7 +64,7 @@ const Auth = ({ onLoginSuccess }) => {
           </span>
           <div className="mt-4">
             <h2 className="text-3xl font-black tracking-tight text-emerald-800 animate-breathe">
-              Welcome to NammaRoute
+              Welcome to CommuteIQ
             </h2>
           </div>
           <p className="mt-2 text-sm text-slate-500 font-semibold">

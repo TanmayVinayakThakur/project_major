@@ -28,7 +28,7 @@ app.use('/api/location', locationRouter);
 
 app.get('/', (_req, res) => {
   res.json({
-    message: 'NammaRoute API is running 🚇',
+    message: 'CommuteIQ API is running 🚇',
     version: '1.0.0',
     endpoints: {
       auth: '/api/auth',
@@ -46,7 +46,7 @@ const PORT = process.env.PORT || 5000;
 
 connectDB().then(() => {
   app.listen(PORT, () => {
-    console.log(`🚇 NammaRoute server running on http://localhost:${PORT}`);
+    console.log(`🚇 CommuteIQ server running on http://localhost:${PORT}`);
   });
 });
 
