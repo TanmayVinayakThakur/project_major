@@ -11,9 +11,11 @@ const MetroMap = ({
   selectedStation,
   sourceStation,
   destStation,
-  calculatedRoute,
+  sourceLocation,
+  destLocation,
   onSelectSource,
   onSelectDest,
+  calculatedRoute,
   activeMode,
   comparisonData,
 }) => {
@@ -258,7 +260,7 @@ const MetroMap = ({
       });
 
       // Geolocation dashed connection line to nearest station
-      if (nearestStation) {
+      if (nearestStation && !sourceLocation) {
         L.polyline(
           [
             [userLocation.lat, userLocation.lng],
@@ -274,41 +276,109 @@ const MetroMap = ({
       }
     }
 
+    // Draw Custom Source Location (Origin Pin)
+    if (sourceLocation && sourceLocation.lat && sourceLocation.lng) {
+      const sourceMarker = L.circleMarker([sourceLocation.lat, sourceLocation.lng], {
+        radius: 8,
+        color: '#FFFFFF',
+        weight: 2,
+        fillColor: '#10B981', // Emerald
+        fillOpacity: 1.0,
+        opacity: 1.0,
+      }).addTo(layersGroupRef.current);
+
+      sourceMarker.bindTooltip(sourceLocation.name || 'Origin Starting Point 🏁', {
+        permanent: false,
+        direction: 'top',
+        className: 'px-2 py-1 rounded bg-slate-950 border border-emerald-500/50 text-[10px] font-bold text-emerald-300 shadow-xl',
+      });
+
+      // Dash connection to closest start station
+      if (sourceStation) {
+        L.polyline(
+          [
+            [sourceLocation.lat, sourceLocation.lng],
+            [sourceStation.coordinates.lat, sourceStation.coordinates.lng],
+          ],
+          {
+            color: '#10B981',
+            weight: 2.5,
+            dashArray: '6, 6',
+            opacity: 0.8,
+          }
+        ).addTo(layersGroupRef.current);
+      }
+    }
+
+    // Draw Custom Dest Location (Destination Pin)
+    if (destLocation && destLocation.lat && destLocation.lng) {
+      const destMarker = L.circleMarker([destLocation.lat, destLocation.lng], {
+        radius: 8,
+        color: '#FFFFFF',
+        weight: 2,
+        fillColor: '#EF4444', // Red
+        fillOpacity: 1.0,
+        opacity: 1.0,
+      }).addTo(layersGroupRef.current);
+
+      destMarker.bindTooltip(destLocation.name || 'Destination End Point 🎯', {
+        permanent: false,
+        direction: 'top',
+        className: 'px-2 py-1 rounded bg-slate-950 border border-rose-500/50 text-[10px] font-bold text-rose-300 shadow-xl',
+      });
+
+      // Dash connection to closest end station
+      if (destStation) {
+        L.polyline(
+          [
+            [destLocation.lat, destLocation.lng],
+            [destStation.coordinates.lat, destStation.coordinates.lng],
+          ],
+          {
+            color: '#EF4444',
+            weight: 2.5,
+            dashArray: '6, 6',
+            opacity: 0.8,
+          }
+        ).addTo(layersGroupRef.current);
+      }
+    }
+
     // Draw dynamic driving overlays based on active mode
-    if (activeMode === 'hybrid' && comparisonData?.hybrid && destStation) {
+    if (activeMode === 'hybrid' && comparisonData?.hybrid) {
       const exitStationCoords = [
         comparisonData.hybrid.exitStation.coordinates.lat,
         comparisonData.hybrid.exitStation.coordinates.lng
       ];
-      const destCoords = [
-        destStation.coordinates.lat,
-        destStation.coordinates.lng
-      ];
+      const destCoords = destLocation 
+        ? [destLocation.lat, destLocation.lng]
+        : (destStation ? [destStation.coordinates.lat, destStation.coordinates.lng] : null);
       
-      // Draw the Uber cab leg of the hybrid route (Vibrant Blue dashed line)
-      L.polyline([exitStationCoords, destCoords], {
-        color: '#3B82F6',
-        weight: 5,
-        dashArray: '8, 8',
-        opacity: 0.9,
-      }).addTo(layersGroupRef.current);
-    } else if (activeMode === 'uber' && sourceStation && destStation) {
-      const startCoords = [
-        sourceStation.coordinates.lat,
-        sourceStation.coordinates.lng
-      ];
-      const destCoords = [
-        destStation.coordinates.lat,
-        destStation.coordinates.lng
-      ];
-
-      // Draw direct Uber route
-      L.polyline([startCoords, destCoords], {
-        color: '#3B82F6',
-        weight: 6,
-        dashArray: '8, 8',
-        opacity: 0.95,
-      }).addTo(layersGroupRef.current);
+      if (destCoords) {
+        // Draw the Uber cab leg of the hybrid route (Vibrant Blue dashed line)
+        L.polyline([exitStationCoords, destCoords], {
+          color: '#3B82F6',
+          weight: 5,
+          dashArray: '8, 8',
+          opacity: 0.9,
+        }).addTo(layersGroupRef.current);
+      }
+    } else if (activeMode === 'uber') {
+      const startCoords = sourceLocation 
+        ? [sourceLocation.lat, sourceLocation.lng]
+        : (sourceStation ? [sourceStation.coordinates.lat, sourceStation.coordinates.lng] : null);
+      const destCoords = destLocation 
+        ? [destLocation.lat, destLocation.lng]
+        : (destStation ? [destStation.coordinates.lat, destStation.coordinates.lng] : null);
+      
+      if (startCoords && destCoords) {
+        // Draw Uber path (Vibrant Blue thick line)
+        L.polyline([startCoords, destCoords], {
+          color: '#3B82F6',
+          weight: 6,
+          opacity: 0.8,
+        }).addTo(layersGroupRef.current);
+      }
     }
 
     // Adjust Map Fit Bounds
@@ -317,12 +387,19 @@ const MetroMap = ({
       const routePoints = calculatedRoute.path.map((s) => [s.coordinates.lat, s.coordinates.lng]);
       
       // Include cab start/endpoints to fit map bounds correctly
-      if (activeMode === 'hybrid' && comparisonData?.hybrid && destStation) {
-        routePoints.push([destStation.coordinates.lat, destStation.coordinates.lng]);
-      } else if (activeMode === 'uber' && sourceStation && destStation) {
-        routePoints.push([sourceStation.coordinates.lat, sourceStation.coordinates.lng]);
-        routePoints.push([destStation.coordinates.lat, destStation.coordinates.lng]);
+      if (activeMode === 'hybrid' && comparisonData?.hybrid) {
+        if (destLocation) routePoints.push([destLocation.lat, destLocation.lng]);
+        else if (destStation) routePoints.push([destStation.coordinates.lat, destStation.coordinates.lng]);
+      } else if (activeMode === 'uber') {
+        if (sourceLocation) routePoints.push([sourceLocation.lat, sourceLocation.lng]);
+        else if (sourceStation) routePoints.push([sourceStation.coordinates.lat, sourceStation.coordinates.lng]);
+        
+        if (destLocation) routePoints.push([destLocation.lat, destLocation.lng]);
+        else if (destStation) routePoints.push([destStation.coordinates.lat, destStation.coordinates.lng]);
       }
+
+      if (sourceLocation) routePoints.push([sourceLocation.lat, sourceLocation.lng]);
+      if (destLocation) routePoints.push([destLocation.lat, destLocation.lng]);
 
       const bounds = L.latLngBounds(routePoints);
       mapInstance.current.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
@@ -332,7 +409,7 @@ const MetroMap = ({
       mapInstance.current.fitBounds(bounds, { padding: [40, 40] });
       initialFitDone.current = true;
     }
-  }, [stations, userLocation, nearestStation, selectedStation, sourceStation, destStation, calculatedRoute, activeMode, comparisonData]);
+  }, [stations, userLocation, nearestStation, selectedStation, sourceStation, destStation, sourceLocation, destLocation, calculatedRoute, activeMode, comparisonData]);
 
   return (
     <div className="flex flex-col gap-6 lg:flex-row animate-fadeIn">

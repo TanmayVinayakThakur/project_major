@@ -10,7 +10,7 @@ const getHaversineDistance = (lat1, lon1, lat2, lon2) => {
   return R * 2 * Math.asin(Math.sqrt(a));
 };
 
-// 1. Purple Line Stations (30 stations, sequential order Challaghatta to Whitefield)
+// 1. Purple Line Stations (37 stations, sequential order Challaghatta to Whitefield)
 const PURPLE_LINE_STATIONS = [
   ['CLGT', 'Challaghatta',                          'Purple', 12.9179, 77.4725, false],
   ['KNGR', 'Kengeri',                               'Purple', 12.9181, 77.4839, false],
@@ -18,6 +18,7 @@ const PURPLE_LINE_STATIONS = [
   ['PTGR', 'Pattanagere',                           'Purple', 12.9255, 77.5028, false],
   ['JNBT', 'Jnanabharathi',                         'Purple', 12.9304, 77.5098, false],
   ['RRNV', 'Rajarajeshwari Nagar',                  'Purple', 12.9366, 77.5186, false],
+  ['NYDH', 'Pantharapalya - Nayandahalli',          'Purple', 12.9415, 77.5243, false],
   ['MYRD', 'Mysuru Road',                            'Purple', 12.9463, 77.5300, false],
   ['DPLY', 'Deepanjali Nagar',                       'Purple', 12.9522, 77.5357, false],
   ['ASOK', 'Attiguppe',                              'Purple', 12.9620, 77.5332, false],
@@ -26,8 +27,9 @@ const PURPLE_LINE_STATIONS = [
   ['MGFM', 'Magadi Road',                            'Purple', 12.9718, 77.5562, false],
   ['CTRW', 'Krantivira Sangolli Rayanna (City Rly)', 'Purple', 12.9754, 77.5728, false],
   ['MSJP', 'Nadaprabhu Kempegowda (Majestic)',       'Purple', 12.9756, 77.5728, true],
-  ['VSVY', 'Sir M. Visvesvaraya (Vidhana Soudha)',   'Purple', 12.9789, 77.5800, false],
-  ['CPBK', 'Cubbon Park',                            'Purple', 12.9795, 77.5870, false],
+  ['VSVY', 'Sir M. Visvesvaraya (Central College)',  'Purple', 12.9779, 77.5804, false],
+  ['AMBD', 'Dr. B.R. Ambedkar (Vidhana Soudha)',      'Purple', 12.9798, 77.5927, false],
+  ['CPBK', 'Cubbon Park',                            'Purple', 12.9811, 77.5968, false],
   ['MGRD', 'MG Road',                                'Purple', 12.9756, 77.6067, false],
   ['TRNY', 'Trinity',                                'Purple', 12.9730, 77.6174, false],
   ['HLSR', 'Halasuru',                               'Purple', 12.9816, 77.6264, false],
@@ -36,18 +38,24 @@ const PURPLE_LINE_STATIONS = [
   ['BYPL', 'Baiyappanahalli',                        'Purple', 12.9907, 77.6695, false],
   ['BSKM', 'Benniganahalli',                         'Purple', 12.9980, 77.6810, false],
   ['KRPM', 'Krishnarajapuram (KR Puram)',            'Purple', 13.0012, 77.6967, false],
-  ['MSTH', 'Mahadevapura',                           'Purple', 12.9940, 77.7100, false],
-  ['GAUR', 'Garudacharpalya',                        'Purple', 12.9930, 77.7230, false],
-  ['VTHL', 'Hoodi',                                  'Purple', 12.9940, 77.7360, false],
-  ['KDIA', 'Kadugodi Industrial Area',               'Purple', 12.9941, 77.7470, false],
-  ['HFCS', 'Hopefarm Channasandra',                  'Purple', 12.9942, 77.7510, false],
+  ['MSTH', 'Singayyanapalya',                        'Purple', 12.9964, 77.6974, false],
+  ['GAUR', 'Garudacharpalya',                        'Purple', 12.9936, 77.7038, false],
+  ['VTHL', 'Hoodi',                                  'Purple', 12.9887, 77.7113, false],
+  ['SPYA', 'Seetharampalya',                         'Purple', 12.9809, 77.7089, false],
+  ['KDHL', 'Kundalahalli',                           'Purple', 12.9775, 77.7156, false],
+  ['NLHL', 'Nallurhalli',                            'Purple', 12.9766, 77.7249, false],
+  ['SSSH', 'Sri Sathya Sai Hospital',                'Purple', 12.9810, 77.7276, false],
+  ['PTAH', 'Pattandur Agrahara',                     'Purple', 12.9876, 77.7382, false],
+  ['KDIA', 'Kadugodi Tree Park',                     'Purple', 12.9902, 77.7470, false],
+  ['HFCS', 'Hopefarm Channasandra',                  'Purple', 12.9842, 77.7512, false],
   ['WHTF', 'Whitefield (Kadugodi)',                  'Purple', 12.9945, 77.7600, false],
 ];
 
-// 2. Green Line Stations (31 stations, sequential order Madavara to Silk Institute)
+// 2. Green Line Stations (32 stations, sequential order Madavara to Silk Institute)
 const GREEN_LINE_STATIONS = [
   ['MDVR', 'Madavara',                               'Green', 13.0920, 77.5080, false],
   ['CIGN', 'Chikkabidarakallu',                      'Green', 13.0800, 77.5100, false],
+  ['MJNR', 'Manjunathanagar',                        'Green', 13.0745, 77.5125, false],
   ['NGSD', 'Nagasandra',                              'Green', 13.0690, 77.5150, false],
   ['DSHL', 'Dasarahalli',                             'Green', 13.0580, 77.5180, false],
   ['JLHL', 'Jalahalli',                               'Green', 13.0460, 77.5200, false],

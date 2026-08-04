@@ -23,6 +23,8 @@ function App() {
   // Routing States
   const [sourceStation, setSourceStation] = useState(null);
   const [destStation, setDestStation] = useState(null);
+  const [sourceLocation, setSourceLocation] = useState(null);
+  const [destLocation, setDestLocation] = useState(null);
   const [calculatedRoute, setCalculatedRoute] = useState(null);
   const [comparisonData, setComparisonData] = useState(null);
   const [comparisonLoading, setComparisonLoading] = useState(false);
@@ -35,14 +37,12 @@ function App() {
   const [userSyncing, setUserSyncing] = useState(!!localStorage.getItem('token'));
   const [connectionError, setConnectionError] = useState(false);
 
-  // 1. Helper to find closest station to coordinates
-  const findAndSetClosestStation = (lat, lng, stationList) => {
+  // Helper to find closest station to coordinates
+  const findClosestStationToCoords = (lat, lng, stationList) => {
     const list = stationList || stations;
     if (!list || list.length === 0) return null;
-
     let minDistance = Infinity;
     let closest = null;
-
     list.forEach((station) => {
       const dist = calculateDistance(lat, lng, station.coordinates.lat, station.coordinates.lng);
       if (dist < minDistance) {
@@ -50,13 +50,61 @@ function App() {
         closest = station;
       }
     });
+    return closest;
+  };
+
+  // 1. Helper to find closest station to coordinates
+  const findAndSetClosestStation = (lat, lng, stationList) => {
+    const list = stationList || stations;
+    const closest = findClosestStationToCoords(lat, lng, list);
 
     if (closest) {
       setNearestStation(closest);
       setSourceStation(closest); // AUTOMATIC SELECTION of Source Station!
       setSelectedStation(closest);
+      setSourceLocation({
+        name: `Current Location (${lat.toFixed(4)}, ${lng.toFixed(4)})`,
+        lat,
+        lng
+      });
     }
     return closest;
+  };
+
+  const handleSelectSource = (loc) => {
+    if (!loc) {
+      setSourceLocation(null);
+      setSourceStation(null);
+      return;
+    }
+    
+    setSourceLocation({ name: loc.name, lat: loc.lat, lng: loc.lng });
+
+    if (loc.isStation) {
+      const station = stations.find(s => s.code === loc.stationCode || s.name === loc.name);
+      setSourceStation(station);
+    } else {
+      const closest = findClosestStationToCoords(loc.lat, loc.lng);
+      setSourceStation(closest);
+    }
+  };
+
+  const handleSelectDest = (loc) => {
+    if (!loc) {
+      setDestLocation(null);
+      setDestStation(null);
+      return;
+    }
+
+    setDestLocation({ name: loc.name, lat: loc.lat, lng: loc.lng });
+
+    if (loc.isStation) {
+      const station = stations.find(s => s.code === loc.stationCode || s.name === loc.name);
+      setDestStation(station);
+    } else {
+      const closest = findClosestStationToCoords(loc.lat, loc.lng);
+      setDestStation(closest);
+    }
   };
 
   // 2. Fetch all metro stations
@@ -180,6 +228,15 @@ function App() {
 
         // 2. Fetch comparative (Uber vs Metro vs Hybrid) data
         const gKey = localStorage.getItem('google_maps_api_key') || '';
+        
+        const fromBody = sourceLocation 
+          ? { lat: sourceLocation.lat, lng: sourceLocation.lng, name: sourceLocation.name }
+          : { lat: sourceStation.coordinates.lat, lng: sourceStation.coordinates.lng, name: sourceStation.name };
+        
+        const toBody = destLocation
+          ? { lat: destLocation.lat, lng: destLocation.lng, name: destLocation.name }
+          : { lat: destStation.coordinates.lat, lng: destStation.coordinates.lng, name: destStation.name };
+
         const resCompare = await fetch('/api/compare', {
           method: 'POST',
           headers: {
@@ -187,16 +244,8 @@ function App() {
             'x-google-maps-key': gKey
           },
           body: JSON.stringify({
-            from: {
-              lat: sourceStation.coordinates.lat,
-              lng: sourceStation.coordinates.lng,
-              name: sourceStation.name
-            },
-            to: {
-              lat: destStation.coordinates.lat,
-              lng: destStation.coordinates.lng,
-              name: destStation.name
-            }
+            from: fromBody,
+            to: toBody
           })
         });
 
@@ -214,7 +263,7 @@ function App() {
     };
 
     fetchCalculatedRoute();
-  }, [sourceStation, destStation]);
+  }, [sourceStation, destStation, sourceLocation, destLocation]);
 
   // Handle successful login/registration
   const handleLoginSuccess = (userToken, userData) => {
@@ -242,6 +291,8 @@ function App() {
     setSelectedStation(null);
     setSourceStation(null);
     setDestStation(null);
+    setSourceLocation(null);
+    setDestLocation(null);
     setCalculatedRoute(null);
     setComparisonData(null);
     setPreference('cheaper');
@@ -260,6 +311,8 @@ function App() {
   const handleClearRoute = () => {
     setSourceStation(null);
     setDestStation(null);
+    setSourceLocation(null);
+    setDestLocation(null);
     setCalculatedRoute(null);
     setComparisonData(null);
     setPreference('cheaper');
@@ -328,8 +381,10 @@ function App() {
                   stations={stations}
                   sourceStation={sourceStation}
                   destStation={destStation}
-                  onSelectSource={setSourceStation}
-                  onSelectDest={setDestStation}
+                  sourceLocation={sourceLocation}
+                  destLocation={destLocation}
+                  onSelectSource={handleSelectSource}
+                  onSelectDest={handleSelectDest}
                   calculatedRoute={calculatedRoute}
                   onClearRoute={handleClearRoute}
                   comparisonData={comparisonData}
@@ -340,7 +395,7 @@ function App() {
                   setActiveMode={setActiveMode}
                 />
               </div>
-
+ 
               {/* Panel 2: Graphical Leaflet Satellite Map (2/4 column) */}
               <div className="xl:col-span-2">
                 <MetroMap
@@ -351,9 +406,11 @@ function App() {
                   selectedStation={selectedStation}
                   sourceStation={sourceStation}
                   destStation={destStation}
+                  sourceLocation={sourceLocation}
+                  destLocation={destLocation}
+                  onSelectSource={handleSelectSource}
+                  onSelectDest={handleSelectDest}
                   calculatedRoute={calculatedRoute}
-                  onSelectSource={setSourceStation}
-                  onSelectDest={setDestStation}
                   activeMode={activeMode}
                   comparisonData={comparisonData}
                 />

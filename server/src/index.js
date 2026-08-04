@@ -18,11 +18,13 @@ const authRouter = require('./routes/auth');
 const stationsRouter = require('./routes/stations');
 const routeRouter = require('./routes/route');
 const compareRouter = require('./routes/compare');
+const locationRouter = require('./routes/location');
 
 app.use('/api/auth', authRouter);
 app.use('/api/stations', stationsRouter);
 app.use('/api/route', routeRouter);
 app.use('/api/compare', compareRouter);
+app.use('/api/location', locationRouter);
 
 app.get('/', (_req, res) => {
   res.json({

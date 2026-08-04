@@ -16,12 +16,12 @@ const calculateDistance = (lat1, lon1, lat2, lon2) => {
 const LANDMARKS = [
   { name: 'Lalbagh Botanical Garden', stationCode: 'LBGH' },
   { name: 'Cubbon Park Garden', stationCode: 'CPBK' },
-  { name: 'Vidhana Soudha (Assembly)', stationCode: 'VSVY' },
+  { name: 'Vidhana Soudha (Assembly)', stationCode: 'AMBD' },
   { name: 'Kempegowda Majestic Bus Stand', stationCode: 'MSJP' },
   { name: 'Yeshwanthpur Railway Station', stationCode: 'YWPR' },
   { name: 'KSR Bengaluru City Railway Station', stationCode: 'CTRW' },
   { name: 'Forum Mall Koramangala', stationCode: 'BTML' },
-  { name: 'Central Silk Board Junction', stationCode: 'CNRK' },
+  { name: 'Central Silk Board Junction', stationCode: 'SLKB' },
   { name: 'Phoenix Marketcity Mall', stationCode: 'MSTH' },
   { name: 'M.G. Road Boulevard / UB City', stationCode: 'MGRD' },
 ];
@@ -82,47 +82,79 @@ const UserProfile = ({ user, token, onUpdateProfile, onLogout, stations, onSetNe
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Filter options based on autocomplete search
-  const getFilteredOptions = () => {
-    if (!searchQuery) return [];
-    const query = searchQuery.toLowerCase();
+  const [autocompleteSuggestions, setAutocompleteSuggestions] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
 
-    // Match stations
-    const matchedStations = stations
-      .filter((s) => s.name.toLowerCase().includes(query) || s.code.toLowerCase().includes(query))
-      .map((s) => ({
-        label: s.name,
-        lat: s.coordinates.lat,
-        lng: s.coordinates.lng,
-        type: 'station',
-        line: s.line,
-        original: s,
-      }));
+  // Fetch autocomplete suggestions when searchQuery changes
+  useEffect(() => {
+    if (!searchQuery || searchQuery.trim().length < 3) {
+      setAutocompleteSuggestions([]);
+      return;
+    }
 
-    // Match landmarks
-    const matchedLandmarks = LANDMARKS.filter((l) => l.name.toLowerCase().includes(query)).map((l) => {
-      const station = stations.find((s) => s.code === l.stationCode);
-      return {
-        label: l.name,
-        lat: station ? station.coordinates.lat : 12.9716,
-        lng: station ? station.coordinates.lng : 77.5946,
-        type: 'landmark',
-        line: station ? station.line : '',
-        original: station,
-      };
-    });
+    // Do not search if it exactly matches the currently active address
+    if (searchQuery === address) {
+      return;
+    }
 
-    return [...matchedStations, ...matchedLandmarks].slice(0, 6);
-  };
+    const delayDebounceFn = setTimeout(async () => {
+      try {
+        setIsSearching(true);
+        const gKey = localStorage.getItem('google_maps_api_key') || '';
+        const res = await fetch(`/api/location/autocomplete?input=${encodeURIComponent(searchQuery)}`, {
+          headers: {
+            'x-google-maps-key': gKey
+          }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setAutocompleteSuggestions(data);
+        }
+      } catch (err) {
+        console.error('Error fetching autocomplete:', err);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 300);
 
-  const filteredOptions = getFilteredOptions();
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchQuery, address]);
 
-  // Select suggestion
-  const handleSelectOption = (opt) => {
-    setLat(opt.lat);
-    setLng(opt.lng);
-    setAddress(opt.label);
-    setSearchQuery(opt.label);
+  // Select suggestion and geocode it if needed
+  const handleSelectOption = async (opt) => {
+    if (opt.type === 'google') {
+      try {
+        setSaveStatus('saving');
+        setErrorMessage('');
+        const gKey = localStorage.getItem('google_maps_api_key') || '';
+        const res = await fetch(`/api/location/geocode?placeId=${opt.placeId}`, {
+          headers: {
+            'x-google-maps-key': gKey
+          }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setLat(data.lat);
+          setLng(data.lng);
+          setAddress(data.address);
+          setSearchQuery(data.address);
+          setSaveStatus(null);
+        } else {
+          setErrorMessage('Failed to geocode selected address.');
+          setSaveStatus(null);
+        }
+      } catch (err) {
+        console.error('Geocoding error:', err);
+        setErrorMessage('Error connecting to geocoding service.');
+        setSaveStatus(null);
+      }
+    } else {
+      // Local fallback (station or landmark)
+      setLat(opt.lat);
+      setLng(opt.lng);
+      setAddress(opt.description);
+      setSearchQuery(opt.description);
+    }
     setShowDropdown(false);
   };
 
@@ -250,33 +282,26 @@ const UserProfile = ({ user, token, onUpdateProfile, onLogout, stations, onSetNe
           </div>
 
           {/* Autocomplete Dropdown list */}
-          {showDropdown && filteredOptions.length > 0 && (
-            <div className="absolute z-50 mt-1 w-full max-h-48 overflow-y-auto rounded-xl border border-slate-800 bg-slate-950 p-2 shadow-2xl">
-              {filteredOptions.map((opt, idx) => (
+          {showDropdown && (autocompleteSuggestions.length > 0 || isSearching) && (
+            <div className="absolute z-50 mt-1 w-full max-h-56 overflow-y-auto rounded-xl border border-slate-800 bg-slate-950 p-2 shadow-2xl">
+              {isSearching && (
+                <div className="p-3 text-center text-xs text-slate-500 font-medium animate-pulse">
+                  Searching addresses...
+                </div>
+              )}
+              {autocompleteSuggestions.map((opt, idx) => (
                 <button
                   key={idx}
                   type="button"
                   onClick={() => handleSelectOption(opt)}
-                  className="w-full flex items-center justify-between rounded-lg p-2 hover:bg-slate-900 transition-colors text-left text-xs"
+                  className="w-full flex items-center justify-between rounded-lg p-2.5 hover:bg-slate-900 transition-colors text-left text-xs border border-transparent hover:border-slate-850"
                 >
-                  <div>
-                    <p className="font-bold text-slate-200">{opt.label}</p>
-                    <p className="text-[9px] text-slate-500 uppercase mt-0.5">
-                      {opt.type === 'landmark' ? 'Landmark' : 'Metro Station'}
+                  <div className="flex-1 pr-2">
+                    <p className="font-bold text-slate-200">{opt.description}</p>
+                    <p className="text-[9px] text-slate-500 uppercase mt-0.5 font-semibold tracking-wider">
+                      {opt.type === 'google' ? 'Google Maps Address' : opt.type === 'station' ? 'Metro Station' : 'Landmark'}
                     </p>
                   </div>
-                  {opt.line && (
-                    <span
-                      className="rounded-full px-2 py-0.5 text-[8px] font-bold border"
-                      style={{
-                        backgroundColor: `${opt.line === 'Purple' ? '#A855F7' : opt.line === 'Green' ? '#22C55E' : '#EAB308'}15`,
-                        color: opt.line === 'Purple' ? '#C084FC' : opt.line === 'Green' ? '#4ADE80' : '#FACC15',
-                        borderColor: `${opt.line === 'Purple' ? '#A855F7' : opt.line === 'Green' ? '#22C55E' : '#EAB308'}30`,
-                      }}
-                    >
-                      {opt.line}
-                    </span>
-                  )}
                 </button>
               ))}
             </div>
