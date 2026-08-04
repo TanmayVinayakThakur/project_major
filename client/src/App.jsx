@@ -1,24 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { RefreshCw, ShieldAlert, Layers } from 'lucide-react';
+import { RefreshCw, ShieldAlert } from 'lucide-react';
 import Auth from './components/Auth';
 import RoutePlanner from './components/RoutePlanner';
 import MetroMap from './components/MetroMap';
-
-// Helper to calculate coordinate distances (Haversine)
-const calculateDistance = (lat1, lon1, lat2, lon2) => {
-  const R = 6371; // radius in km
-  const dLat = (lat2 - lat1) * (Math.PI / 180);
-  const dLon = (lon2 - lon1) * (Math.PI / 180);
-  // Simple geometric approximation is fine for frontend closest station logic
-  const lat1Rad = lat1 * (Math.PI / 180);
-  const lat2Rad = lat2 * (Math.PI / 180);
-
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.sin(dLon / 2) * Math.sin(dLon / 2) * Math.cos(lat1Rad) * Math.cos(lat2Rad);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-};
+import AIChatAgent from './components/AIChatAgent';
 
 // Simplified distance calc helper
 const calculateDistanceSimple = (lat1, lon1, lat2, lon2) => {
@@ -41,10 +26,14 @@ function App() {
   const [comparisonLoading, setComparisonLoading] = useState(false);
   const [preference, setPreference] = useState('cheaper'); // 'cheaper' | 'faster'
   const [activeMode, setActiveMode] = useState('metro'); // 'metro' | 'uber' | 'hybrid'
+  
+  // Transit Mode & Geofencing States
+  const [isJourneyStarted, setIsJourneyStarted] = useState(false);
+  const [showCabAlert, setShowCabAlert] = useState(false);
+  const [geofenceDistance, setGeofenceDistance] = useState(null);
 
   const [selectedStation, setSelectedStation] = useState(null);
   const [nearestStation, setNearestStation] = useState(null);
-  const [stationsLoading, setStationsLoading] = useState(true);
   const [userSyncing, setUserSyncing] = useState(!!localStorage.getItem('token'));
   const [connectionError, setConnectionError] = useState(false);
 
@@ -123,7 +112,6 @@ function App() {
   // Fetch all metro stations
   const fetchStations = async () => {
     try {
-      setStationsLoading(true);
       const res = await fetch('/api/stations');
       if (res.ok) {
         const data = await res.json();
@@ -139,8 +127,6 @@ function App() {
       console.error('Error fetching stations:', err);
       setConnectionError(true);
       return [];
-    } finally {
-      setStationsLoading(false);
     }
   };
 
@@ -221,6 +207,90 @@ function App() {
 
     initializeApp();
   }, [token]);
+
+  // Geolocation watch logic for transit mode
+  useEffect(() => {
+    if (!isJourneyStarted) {
+      setGeofenceDistance(null);
+      setShowCabAlert(false);
+      return;
+    }
+
+    let watchId = null;
+
+    if (activeMode === 'hybrid' && comparisonData && comparisonData.hybrid) {
+      const exitStation = comparisonData.hybrid.exitStation;
+
+      const success = (position) => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        
+        const dist = calculateDistanceSimple(
+          lat, lng, 
+          exitStation.coordinates.lat, exitStation.coordinates.lng
+        );
+        
+        setGeofenceDistance(dist);
+        
+        // Trigger alert if within 500m (0.5 km)
+        if (dist <= 0.5) {
+          setShowCabAlert(true);
+        }
+      };
+
+      const error = (err) => {
+        console.warn('Geolocation watch error:', err.message);
+      };
+
+      if (navigator.geolocation) {
+        watchId = navigator.geolocation.watchPosition(success, error, {
+          enableHighAccuracy: true,
+          maximumAge: 0,
+          timeout: 10000
+        });
+      }
+    }
+
+    return () => {
+      if (watchId) {
+        navigator.geolocation.clearWatch(watchId);
+      }
+    };
+  }, [isJourneyStarted, activeMode, comparisonData]);
+
+  // Handler to force simulate approaching exit station
+  const handleSimulateGeofence = () => {
+    setGeofenceDistance(0.42); // 420 meters
+    setShowCabAlert(true);
+  };
+
+  // Handler to load route applied from the conversational agent
+  const handleApplyRouteFromAgent = (routeData) => {
+    const source = stations.find(s => s.name === routeData.pureMetro.startStation);
+    const dest = stations.find(s => s.name === routeData.pureMetro.endStation);
+    
+    if (source && dest) {
+      setSourceStation(source);
+      setDestStation(dest);
+      setSourceLocation({
+        name: source.name + ' Metro Station',
+        lat: source.coordinates.lat,
+        lng: source.coordinates.lng,
+        isStation: true,
+        stationCode: source.code
+      });
+      setDestLocation({
+        name: dest.name + ' Metro Station',
+        lat: dest.coordinates.lat,
+        lng: dest.coordinates.lng,
+        isStation: true,
+        stationCode: dest.code
+      });
+      setCalculatedRoute(routeData.pureMetro);
+      setComparisonData(routeData);
+      setWizardStep('results');
+    }
+  };
 
   // Automatically calculate route when source & destination are selected
   useEffect(() => {
@@ -455,6 +525,7 @@ function App() {
                       activeMode={activeMode}
                       setActiveMode={setActiveMode}
                       view="results"
+                      onStartJourney={() => setIsJourneyStarted(true)}
                     />
                   </div>
 
@@ -489,6 +560,96 @@ function App() {
       <footer className="border-t border-emerald-100 bg-white/60 py-6 text-center text-xs text-slate-500">
         <p>© 2026 CommuteIQ. Built with React + Express + MongoDB.</p>
       </footer>
+
+      {/* Active Journey Live Tracker HUD */}
+      {isJourneyStarted && (
+        <div className="fixed top-24 left-1/2 transform -translate-x-1/2 z-[999] w-[90%] max-w-lg bg-slate-900/90 backdrop-blur-md border border-purple-500/30 rounded-2xl p-4 shadow-2xl animate-in slide-in-from-top-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl animate-spin">⚡</span>
+            <div className="text-left">
+              <h3 className="text-xs font-black text-slate-100 uppercase tracking-widest">Active Commute Tracking</h3>
+              <p className="text-[10px] text-slate-400 font-semibold mt-0.5">
+                Mode: <span className="text-purple-400 font-bold uppercase">{activeMode}</span>
+                {activeMode === 'hybrid' && comparisonData?.hybrid && (
+                  <span> | Transition Exit: {comparisonData.hybrid.exitStation.name}</span>
+                )}
+              </p>
+              {activeMode === 'hybrid' && geofenceDistance !== null && (
+                <p className="text-[10px] text-purple-300 font-semibold mt-0.5">
+                  Distance to exit: {geofenceDistance.toFixed(2)} km
+                </p>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {activeMode === 'hybrid' && (
+              <button
+                onClick={handleSimulateGeofence}
+                className="px-3 py-1.5 rounded-lg border border-purple-500/30 bg-purple-950/40 text-[10px] text-purple-300 font-bold hover:bg-purple-900/30 transition-all whitespace-nowrap"
+              >
+                Simulate Geofence (500m)
+              </button>
+            )}
+            <button
+              onClick={() => {
+                setIsJourneyStarted(false);
+                setShowCabAlert(false);
+              }}
+              className="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-[10px] text-white font-bold transition-all shadow-md shadow-rose-950/20 whitespace-nowrap"
+            >
+              Stop Journey
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Cab Pre-Booking Modal */}
+      {showCabAlert && activeMode === 'hybrid' && comparisonData?.hybrid && (
+        <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in">
+          <div className="w-[90%] max-w-md bg-slate-950/95 border border-purple-500/30 rounded-3xl p-6 shadow-2xl text-center space-y-4 animate-in zoom-in-95">
+            <div className="mx-auto w-12 h-12 bg-purple-500/20 border border-purple-500/40 rounded-full flex items-center justify-center text-xl">
+              🚗
+            </div>
+            <h3 className="text-md font-black text-slate-100">Smart Transit Alert: Pre-book Cab</h3>
+            <p className="text-xs text-slate-300 leading-relaxed font-semibold">
+              You are approaching <strong className="text-purple-300">{comparisonData.hybrid.exitStation.name} Metro Station</strong> (approx. {geofenceDistance ? geofenceDistance.toFixed(2) : '0.42'} km away).
+            </p>
+            <p className="text-[11px] text-slate-400 leading-relaxed">
+              Book your ride now to ensure your driver is waiting at the exit when you arrive.
+            </p>
+            <div className="flex flex-col gap-2 pt-2">
+              <button
+                onClick={() => {
+                  const exitStation = comparisonData.hybrid.exitStation;
+                  const dest = destLocation || {
+                    lat: destStation.coordinates.lat,
+                    lng: destStation.coordinates.lng,
+                    name: destStation.name
+                  };
+                  const url = `https://m.uber.com/ul/?action=setPickup&pickup[latitude]=${exitStation.coordinates.lat}&pickup[longitude]=${exitStation.coordinates.lng}&pickup[nickname]=${encodeURIComponent(exitStation.name + ' Metro Station')}&dropoff[latitude]=${dest.lat}&dropoff[longitude]=${dest.lng}&dropoff[nickname]=${encodeURIComponent(dest.name)}`;
+                  window.open(url, '_blank');
+                  setShowCabAlert(false);
+                }}
+                className="w-full py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs transition-all shadow-md shadow-purple-900/20"
+              >
+                Pre-book Ride on Uber ➡️
+              </button>
+              <button
+                onClick={() => setShowCabAlert(false)}
+                className="w-full py-2.5 rounded-xl border border-slate-700 hover:bg-slate-800/40 text-slate-300 font-bold text-xs transition-all"
+              >
+                Dismiss Alert
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Floating conversational AI Travel Concierge */}
+      <AIChatAgent 
+        onApplyRoute={handleApplyRouteFromAgent}
+        currentLocations={{ sourceLocation, destLocation, sourceStation, destStation }}
+      />
     </div>
   );
 }

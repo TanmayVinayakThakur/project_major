@@ -17,14 +17,16 @@ app.use(express.json());
 const authRouter = require('./routes/auth');
 const stationsRouter = require('./routes/stations');
 const routeRouter = require('./routes/route');
-const compareRouter = require('./routes/compare');
-const locationRouter = require('./routes/location');
+const { router: compareRouter } = require('./routes/compare');
+const { router: locationRouter } = require('./routes/location');
+const agentRouter = require('./routes/agent');
 
 app.use('/api/auth', authRouter);
 app.use('/api/stations', stationsRouter);
 app.use('/api/route', routeRouter);
 app.use('/api/compare', compareRouter);
 app.use('/api/location', locationRouter);
+app.use('/api/agent', agentRouter);
 
 app.get('/', (_req, res) => {
   res.json({

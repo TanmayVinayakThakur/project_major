@@ -31,7 +31,8 @@ const RoutePlanner = ({
   activeMode,
   setActiveMode,
   view = 'setup', // 'setup' | 'results'
-  onPlanCommute
+  onPlanCommute,
+  onStartJourney
 }) => {
   const [sourceSearch, setSourceSearch] = useState('');
   const [destSearch, setDestSearch] = useState('');
@@ -784,6 +785,16 @@ const RoutePlanner = ({
                 </div>
               ))}
             </div>
+          </div>
+
+          {/* Start Journey Trigger */}
+          <div className="mt-4">
+            <button
+              onClick={onStartJourney}
+              className="w-full py-3 px-4 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs transition-all shadow-md shadow-purple-900/20 flex items-center justify-center gap-2 transform hover:scale-[1.01] active:scale-95"
+            >
+              🚀 Start Journey & Track Transit
+            </button>
           </div>
         </div>
       )}
